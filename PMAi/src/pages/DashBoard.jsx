@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { BrowserRouter as Router, useNavigate } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "../components/ui/card";
 import { BarChart3, Stethoscope, CalendarHeart, Brain, BellRing, UtensilsCrossed, ActivitySquare } from "lucide-react";
 import { motion } from "framer-motion";
 import { FaUser, FaSignOutAlt, FaChartLine, FaCalendarAlt, FaBell } from "react-icons/fa";

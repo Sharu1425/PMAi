@@ -1,71 +1,62 @@
 import express from 'express';
-import session from "express-session";
+import mongoose from 'mongoose';
 import cors from 'cors';
-import connectDB from './backend/database.js';
-import passport from "./backend/passportConfig.js";
-import userRoutes from './routes/userRoute.js';
-import qnRoutes from './routes/qnRoute.js';
-import resultRoutes from './routes/resultRoute.js';
+import session from 'express-session';
+import passport from 'passport';
+import './passportConfig.js'; // Import passport config to register strategies
+import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes.js';
+import userRoutes from './routes/userRoute.js';
 
-const app = express();
-const port = 5001;
-connectDB();
+dotenv.config();
 
-// Debug middleware
-app.use((req, res, next) => {
-    console.log(`${req.method} ${req.url}`);
-    next();
+console.log("Environment variables loaded:", {
+    MONGODB_URI: process.env.MONGODB_URI,
+    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET
 });
 
-app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:5174'],
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
+const app = express();
 
+// Middleware
+app.use(cors({
+    origin: 'http://localhost:5174',
+    credentials: true
+}));
 app.use(express.json());
 
+// Session configuration
 app.use(session({
-    secret: process.env.SESSION_SECRET,
+    secret: process.env.JWT_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: false,
-        httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        sameSite: 'lax',
-        path: '/'
+        secure: false, // Set to true in production with HTTPS
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }));
 
+// Initialize passport
 app.use(passport.initialize());
 app.use(passport.session());
 
-app.use("/auth", authRoutes);
-app.use('/db', userRoutes);
-app.use('/db', qnRoutes);
-app.use('/db', resultRoutes);
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
-app.get('/', (req, res) => {
-    res.send('Server is running');
-});
-
+// Error handling middleware
 app.use((err, req, res, next) => {
-    console.error('Error details:', {
-        message: err.message,
-        stack: err.stack,
-        path: req.path,
-        method: req.method
-    });
-    res.status(500).json({ error: 'Something went wrong!' });
+    console.error(err.stack);
+    res.status(500).json({ message: 'Something went wrong!' });
 });
 
-app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
-    console.log('Environment variables check:');
-    console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'Set' : 'Not set');
-    console.log('GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? 'Set' : 'Not set');
-    console.log('SESSION_SECRET:', process.env.SESSION_SECRET ? 'Set' : 'Not set');
-});
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI)
+    .then(() => console.log('Connected to MongoDB'))
+    .catch(err => console.error('MongoDB connection error:', err));
+
+// Start server
+const PORT = process.env.PORT || 5001;
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+}); 

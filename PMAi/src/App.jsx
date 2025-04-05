@@ -6,7 +6,7 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Navbar from './components/Navbar'
 import AnimatedBackground from './components/AnimatedBackground'
-//import Dashboard from './pages/Dashboard'
+import DashBoard from './pages/DashBoard'
 //import Profile from './pages/Profile'
 //import Settings from './pages/Settings'
 //import Logout from './pages/Logout'
@@ -44,7 +44,7 @@ function App() {
                             <Route path="/" element={<Home />} />
                             <Route path="/login" element={<Login setUser={setUser} setIsAuthenticated={setIsAuthenticated} />} />
                             <Route path="/signup" element={<Signup setUser={setUser} setIsAuthenticated={setIsAuthenticated} />} />
-                            <Route path="/dashboard" element={<Dashboard />} />
+                            <Route path="/dashboard" element={<DashBoard />} />
                             {/* <Route path="/profile" element={<Profile />} />
                             <Route path="/settings" element={<Settings />} />
                             <Route path="/logout" element={<Logout />} /> */}

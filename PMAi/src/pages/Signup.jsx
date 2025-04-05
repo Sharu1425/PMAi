@@ -22,7 +22,7 @@ const Signup = ({ setUser, setIsAuthenticated }) => {
                 return
             }
 
-            const response = await axios.post("http://localhost:5001/auth/register", {
+            const response = await axios.post("http://localhost:5001/users/register", {
                 username,
                 email,
                 password
@@ -51,7 +51,7 @@ const Signup = ({ setUser, setIsAuthenticated }) => {
                     }
 
                     try {
-                        const authResponse = await axios.post("http://localhost:5001/auth/google", {
+                            const authResponse = await axios.post("http://localhost:5001/users/google", {
                             tokenId: response.access_token
                         })
 

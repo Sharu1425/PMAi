@@ -10,11 +10,7 @@ import userRoutes from './routes/userRoute.js';
 
 dotenv.config();
 
-console.log("Environment variables loaded:", {
-    MONGODB_URI: process.env.MONGODB_URI,
-    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
-    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET
-});
+console.log("Environment variables loaded");
 
 const app = express();
 
@@ -41,8 +37,8 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
+app.use('/auth', authRoutes);
+app.use('/users', userRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

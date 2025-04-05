@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PMAi End Credits</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #0f2027;
+      font-family: 'Segoe UI', sans-serif;
+      color: #f1f1f1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .dna-animation {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .helix {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+    }
+
+    .dot {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background-color: #00ffd5;
+      border-radius: 50%;
+      animation: move 4s linear infinite;
+      opacity: 0.6;
+    }
+
+    @keyframes move {
+      0% {
+        transform: translateY(100vh) scale(1);
+        opacity: 0.5;
+      }
+      100% {
+        transform: translateY(-10vh) scale(1.5);
+        opacity: 1;
+      }
+    }
+
+    /* Generate multiple helix dots */
+    .helix .dot:nth-child(odd) {
+      background-color: #ff6b6b;
+    }
+
+    .helix .dot:nth-child(even) {
+      background-color: #00ffd5;
+    }
+
+    .credits-container {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 40px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 15px;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+      max-width: 700px;
+    }
+
+    h1 {
+      font-size: 3rem;
+      color: #00ffd5;
+      margin-bottom: 20px;
+    }
+
+    .project-name span {
+      color: #ff6b6b;
+      font-weight: bold;
+    }
+
+    .warm-message {
+      font-size: 1.3rem;
+      color: #f9f9f9;
+      margin-top: 20px;
+    }
+
+    .footer {
+      margin-top: 50px;
+      font-size: 0.9rem;
+      color: #aaa;
+    }
+
+    .contact {
+      margin-top: 10px;
+      font-size: 0.95rem;
+      color: #ccc;
+    }
+
+    .contact a {
+      color: #00ffd5;
+      text-decoration: none;
+    }
+    .contact a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="dna-animation">
+    <div class="helix">
+      <!-- Generate dots for the DNA effect -->
+      <script>
+        for (let i = 0; i < 50; i++) {
+          const dot = document.createElement('div');
+          dot.className = 'dot';
+          dot.style.left = `${50 + 30 * Math.sin(i / 3)}vw`;
+          dot.style.top = `${i * 3}vh`;
+          dot.style.animationDelay = `${i * 0.1}s`;
+          document.currentScript.parentNode.appendChild(dot);
+        }
+      </script>
+    </div>
+  </div>
+
+  <div class="credits-container">
+    <h1>Thank You!</h1>
+    <p class="project-name">Thank you for using our website <span>PMAi - Your Personal Medical Assistant</span></p>
+    <p class="warm-message">We hope PMAi made your day a little healthier and a lot easier. 💙</p>
+
+    <div class="footer">
+      <p>&copy; MIT 2025</p>
+      <p class="contact">For other queries, contact us at <a href="mailto:pmai@gmail.com">pmai@gmail.com</a></p>
+    </div>
+  </div>
+</body>
+</html>

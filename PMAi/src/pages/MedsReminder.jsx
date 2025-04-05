@@ -1,32 +1,95 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { FaPills, FaClock, FaTrash, FaCheck } from "react-icons/fa";
+import { FaPills, FaClock, FaTrash, FaCheck, FaBell } from "react-icons/fa";
+import toast from "react-hot-toast";
 
 function MedsReminder() {
-  const [medications, setMedications] = useState([]);
+  const [medications, setMedications] = useState(() => {
+    // Load saved medications from localStorage
+    const saved = localStorage.getItem("medications");
+    return saved ? JSON.parse(saved) : [];
+  });
+  
   const [newReminder, setNewReminder] = useState({
     medication: "",
     dosage: "",
     time: "",
     mealTime: "Before Breakfast",
   });
+  
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Save medications to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem("medications", JSON.stringify(medications));
+  }, [medications]);
+  
+  // Update current time every second instead of every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000); // check every second
+    
+    return () => clearInterval(interval);
+  }, []);
+  
+  // Check for medication reminders based on current time
+  useEffect(() => {
+    medications.forEach(med => {
+      if (!med.done) {
+        const now = new Date();
+        const [medHours, medMinutes] = med.time.split(':').map(Number);
+        
+        const medTime = new Date();
+        medTime.setHours(medHours, medMinutes, 0);
+        
+        // If the medication time is within the last 5 minutes and notification hasn't been sent
+        const fiveMinutesAgo = new Date(now.getTime() - 5 * 60000);
+        
+        if (medTime >= fiveMinutesAgo && medTime <= now && !med.notified) {
+          // Show notification
+          toast.success(
+            <div>
+              <p className="font-bold">Medicine Reminder!</p>
+              <p>It's time to take {med.medication} ({med.dosage})</p>
+              <p className="text-sm">{med.mealTime}</p>
+            </div>,
+            {
+              duration: 10000,
+              icon: <FaBell className="text-yellow-400" />,
+            }
+          );
+          
+          // Update medication to mark as notified
+          setMedications(
+            medications.map((m) =>
+              m.id === med.id ? { ...m, notified: true } : m
+            )
+          );
+        }
+      }
+    });
+  }, [currentTime, medications]);
 
   const handleAddReminder = () => {
     if (!newReminder.medication || !newReminder.dosage || !newReminder.time) return;
 
     const newMedicationReminder = {
-      id: medications.length + 1,
+      id: Date.now(),
       medication: newReminder.medication,
       dosage: newReminder.dosage,
       time: newReminder.time,
       mealTime: newReminder.mealTime,
       done: false,
+      notified: false,
     };
     setMedications([...medications, newMedicationReminder]);
     setNewReminder({ medication: "", dosage: "", time: "", mealTime: "Before Breakfast" });
+    
+    toast.success("Medication reminder added!");
   };
 
   const handleMarkAsDone = (id) => {
@@ -35,10 +98,20 @@ function MedsReminder() {
         med.id === id ? { ...med, done: true } : med
       )
     );
+    toast.success("Good job taking your medication!");
   };
 
   const handleRemoveReminder = (id) => {
     setMedications(medications.filter((med) => med.id !== id));
+    toast.success("Reminder removed");
+  };
+  
+  // Format time for display (12-hour format)
+  const formatTime = (timeString) => {
+    const [hours, minutes] = timeString.split(':').map(Number);
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const hours12 = hours % 12 || 12;
+    return `${hours12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
   };
 
   return (
@@ -85,6 +158,8 @@ function MedsReminder() {
                 <option value="After Lunch">After Lunch</option>
                 <option value="Before Dinner">Before Dinner</option>
                 <option value="After Dinner">After Dinner</option>
+                <option value="Bedtime">Bedtime</option>
+                <option value="As Needed">As Needed</option>
               </select>
               <Button
                 onClick={handleAddReminder}
@@ -95,50 +170,64 @@ function MedsReminder() {
             </div>
           </div>
 
+          {/* Current Time Display */}
+          <div className="text-center mb-4">
+            <p className="text-lg font-semibold text-white">Current Time: {currentTime.toLocaleTimeString()}</p>
+          </div>
+
           {/* List of Medication Reminders */}
           <div className="space-y-4">
-            {medications.map((medication) => (
-              <Card
-                key={medication.id}
-                className={`bg-gray-700/30 border ${
-                  medication.done ? "border-gray-600" : "border-indigo-500"
-                } rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl`}
-              >
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center">
-                        <FaPills className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <h2 className="text-lg font-bold text-white">{medication.medication}</h2>
-                        <p className="text-sm text-gray-300">{medication.dosage}</p>
-                        <div className="flex items-center gap-2 text-sm text-gray-400">
-                          <FaClock className="w-3 h-3" />
-                          <span>{medication.time} - {medication.mealTime}</span>
+            {medications.length === 0 ? (
+              <div className="text-center py-8">
+                <FaPills className="text-gray-500 text-5xl mx-auto mb-3" />
+                <p className="text-gray-400">No medication reminders yet.</p>
+                <p className="text-gray-500 text-sm mt-2">Add your first reminder above.</p>
+              </div>
+            ) : (
+              medications.map((medication) => (
+                <Card
+                  key={medication.id}
+                  className={`bg-gray-700/30 border ${
+                    medication.done ? "border-green-500/30" : 
+                    (new Date().toTimeString().substring(0, 5) >= medication.time ? "border-red-500" : "border-indigo-500")
+                  } rounded-xl shadow-lg transition-all duration-300 hover:shadow-xl`}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-10 h-10 rounded-full ${medication.done ? "bg-green-500" : "bg-indigo-500"} flex items-center justify-center`}>
+                          <FaPills className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <h2 className="text-xl font-bold text-white bg-gray-800/50 px-3 py-1 rounded-lg mb-1">{medication.medication}</h2>
+                          <p className="text-sm text-white font-medium">{medication.dosage}</p>
+                          <div className="flex items-center gap-2 text-sm text-gray-300">
+                            <FaClock className="w-3 h-3" />
+                            <span>{formatTime(medication.time)} - {medication.mealTime}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex gap-2">
-                      {!medication.done && (
+                      <div className="flex gap-2">
+                        {!medication.done && (
+                          <Button
+                            onClick={() => handleMarkAsDone(medication.id)}
+                            className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg transition-all duration-300"
+                          >
+                            <FaCheck className="w-4 h-4" />
+                          </Button>
+                        )}
                         <Button
-                          onClick={() => handleMarkAsDone(medication.id)}
-                          className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg transition-all duration-300"
+                          onClick={() => handleRemoveReminder(medication.id)}
+                          className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg transition-all duration-300"
                         >
-                          <FaCheck className="w-4 h-4" />
+                          <FaTrash className="w-4 h-4" />
                         </Button>
-                      )}
-                      <Button
-                        onClick={() => handleRemoveReminder(medication.id)}
-                        className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg transition-all duration-300"
-                      >
-                        <FaTrash className="w-4 h-4" />
-                      </Button>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </div>
       </div>

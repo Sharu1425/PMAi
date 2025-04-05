@@ -29,6 +29,10 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static files from the public directory
+app.use(express.static('public'));
+console.log('Serving static files from:', process.cwd() + '/public');
+
 // Session configuration
 app.use(session({
     secret: process.env.JWT_SECRET,
@@ -62,6 +66,23 @@ app.post('/api/symptom-analysis', async (req, res) => {
         // Return appropriate error response
         return res.status(error.response?.status || 500).json({
             error: 'Failed to analyze symptoms',
+            message: error.response?.data?.message || error.message,
+        });
+    }
+});
+
+// Proxy route for diet recommendations
+app.post('/api/diet-recommendations', async (req, res) => {
+    try {
+        // Forward the request to the Gemini API server
+        const response = await axios.post('http://localhost:3001/api/diet-recommendations', req.body);
+        return res.json(response.data);
+    } catch (error) {
+        console.error('Error proxying diet recommendations request:', error);
+        
+        // Return appropriate error response
+        return res.status(error.response?.status || 500).json({
+            error: 'Failed to get diet recommendations',
             message: error.response?.data?.message || error.message,
         });
     }
@@ -103,6 +124,6 @@ app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     // Check connection to symptom analysis service
     axios.get('http://localhost:3001/api/health')
-        .then(() => console.log('Connected to symptom analysis service'))
-        .catch(err => console.error('Symptom analysis service is not available:', err.message));
+        .then(() => console.log('Connected to health assistant API (symptoms and diet recommendations)'))
+        .catch(err => console.error('Health assistant API is not available:', err.message));
 }); 

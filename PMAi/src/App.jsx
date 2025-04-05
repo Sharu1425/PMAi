@@ -11,6 +11,7 @@ import UserProfile from './pages/UserProfile'
 import SymptomAnalyser from './pages/SymptomAnalyser'
 import DietRecom from './pages/DietRecom'
 import MedsReminder from './pages/MedsReminder'
+import { Toaster } from 'react-hot-toast'
 //import Settings from './pages/Settings'
 //import Logout from './pages/Logout'
 
@@ -78,6 +79,10 @@ function App() {
                                 element={isAuthenticated ? <UserProfile user={user} /> : <Navigate to="/login" />} 
                             />
                             <Route 
+                                path="/userprofile" 
+                                element={isAuthenticated ? <UserProfile user={user} /> : <Navigate to="/login" />} 
+                            />
+                            <Route 
                                 path="/symptoms" 
                                 element={isAuthenticated ? <SymptomAnalyser user={user} /> : <Navigate to="/login" />} 
                             />
@@ -95,6 +100,30 @@ function App() {
                         </Routes>
                     </div>
                 </div>
+                
+                {/* Toast notifications */}
+                <Toaster 
+                    position="top-right"
+                    toastOptions={{
+                        duration: 3000,
+                        style: {
+                            background: '#333',
+                            color: '#fff',
+                        },
+                        success: {
+                            iconTheme: {
+                                primary: '#4caf50',
+                                secondary: '#fff',
+                            },
+                        },
+                        error: {
+                            iconTheme: {
+                                primary: '#f44336',
+                                secondary: '#fff',
+                            },
+                        },
+                    }}
+                />
             </div>
         </Router>
     )

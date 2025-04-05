@@ -29,6 +29,17 @@ const userSchema = new mongoose.Schema({
     },
     name: String,
     profilePicture: String,
+    // Health profile information
+    age: Number,
+    gender: String,
+    weight: Number,
+    height: Number,
+    bloodType: String,
+    allergies: String,
+    dietaryRestrictions: String,
+    medicalConditions: String,
+    weightGoals: String,
+    activityLevel: String,
     createdAt: {
         type: Date,
         default: Date.now

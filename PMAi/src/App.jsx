@@ -35,19 +35,21 @@ function App() {
     
     return (
         <BrowserRouter>
-            <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-950 to-indigo-950">
+            <div className="min-h-screen relative">
                 <AnimatedBackground />
-                <Navbar isAuthenticated={isAuthenticated} onLogout={handleLogout} />
-                <div className="pt-16"> {/* Add padding top to account for fixed navbar */}
-                    <Routes>
-                        <Route path="/" element={<Home />} />
-                        <Route path="/login" element={<Login setUser={setUser} setIsAuthenticated={setIsAuthenticated} />} />
-                        <Route path="/signup" element={<Signup setUser={setUser} setIsAuthenticated={setIsAuthenticated} />} />
-                        {/* <Route path="/dashboard" element={<Dashboard />} />
-                        <Route path="/profile" element={<Profile />} />
-                        <Route path="/settings" element={<Settings />} />
-                        <Route path="/logout" element={<Logout />} /> */}
-                    </Routes>
+                <div className="relative z-10">
+                    <Navbar isAuthenticated={isAuthenticated} onLogout={handleLogout} />
+                    <div className="pt-16"> {/* Add padding to account for fixed navbar */}
+                        <Routes>
+                            <Route path="/" element={<Home />} />
+                            <Route path="/login" element={<Login setUser={setUser} setIsAuthenticated={setIsAuthenticated} />} />
+                            <Route path="/signup" element={<Signup setUser={setUser} setIsAuthenticated={setIsAuthenticated} />} />
+                            <Route path="/dashboard" element={<Dashboard />} />
+                            {/* <Route path="/profile" element={<Profile />} />
+                            <Route path="/settings" element={<Settings />} />
+                            <Route path="/logout" element={<Logout />} /> */}
+                        </Routes>
+                    </div>
                 </div>
             </div>
         </BrowserRouter>

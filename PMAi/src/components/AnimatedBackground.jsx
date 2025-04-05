@@ -11,112 +11,101 @@ const AnimatedBackground = () => {
         let animationFrameId
 
         // Set canvas size
-        const setCanvasSize = () => {
+        const resizeCanvas = () => {
             canvas.width = window.innerWidth
             canvas.height = window.innerHeight
         }
-        setCanvasSize()
-        window.addEventListener("resize", setCanvasSize)
+        resizeCanvas()
+        window.addEventListener("resize", resizeCanvas)
 
-        // Medical theme colors
-        const colors = [
-            '#8b5cf6', // Purple
-            '#3b82f6', // Blue
-            '#06b6d4', // Cyan
-            '#4f46e5', // Indigo
-            '#ec4899'  // Pink
-        ]
+        // DNA strand class
+        class DNAStrand {
+            constructor(x, y, width, height) {
+                this.x = x
+                this.y = y
+                this.width = width
+                this.height = height
+                this.particles = []
+                this.angle = 0
+                this.speed = 0.01
+                this.particleCount = 20
+                this.initializeParticles()
+            }
 
-        // Particle class
-        class Particle {
-            constructor() {
-                this.x = Math.random() * canvas.width
-                this.y = Math.random() * canvas.height
-                this.size = Math.random() * 3 + 0.5
-                this.speedX = Math.random() * 1 - 0.5
-                this.speedY = Math.random() * 1 - 0.5
-                this.color = colors[Math.floor(Math.random() * colors.length)]
-                this.opacity = Math.random() * 0.5 + 0.5
-                this.pulseSpeed = Math.random() * 0.02 + 0.01
-                this.pulseDirection = 1
+            initializeParticles() {
+                for (let i = 0; i < this.particleCount; i++) {
+                    this.particles.push({
+                        x: this.x + (i / this.particleCount) * this.width,
+                        y: this.y + Math.sin(i * 0.5) * this.height,
+                        size: 2,
+                        color: 'rgba(99, 102, 241, 0.3)' // indigo-500 with low opacity
+                    })
+                }
             }
 
             update() {
-                this.x += this.speedX
-                this.y += this.speedY
-
-                if (this.x > canvas.width) this.x = 0
-                else if (this.x < 0) this.x = canvas.width
-                if (this.y > canvas.height) this.y = 0
-                else if (this.y < 0) this.y = canvas.height
-
-                // Pulse size effect
-                this.size += this.pulseDirection * this.pulseSpeed
-                if (this.size > 4) this.pulseDirection = -1
-                if (this.size < 0.5) this.pulseDirection = 1
+                this.angle += this.speed
+                this.particles.forEach((particle, i) => {
+                    particle.y = this.y + Math.sin(i * 0.5 + this.angle) * this.height
+                })
             }
 
-            draw() {
+            draw(ctx) {
                 ctx.beginPath()
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2)
-                ctx.fillStyle = this.color
-                ctx.globalAlpha = this.opacity
-                ctx.fill()
-                ctx.globalAlpha = 1
-            }
-        }
-
-        // Draw connecting lines between particles
-        const connectParticles = (particles) => {
-            for (let i = 0; i < particles.length; i++) {
-                for (let j = i; j < particles.length; j++) {
-                    const dx = particles[i].x - particles[j].x
-                    const dy = particles[i].y - particles[j].y
-                    const distance = Math.sqrt(dx * dx + dy * dy)
-
-                    if (distance < 150) {
-                        ctx.beginPath()
-                        ctx.strokeStyle = particles[i].color
-                        ctx.globalAlpha = 0.2 * (1 - distance / 150)
-                        ctx.lineWidth = 0.5
-                        ctx.moveTo(particles[i].x, particles[i].y)
-                        ctx.lineTo(particles[j].x, particles[j].y)
-                        ctx.stroke()
-                        ctx.globalAlpha = 1
-                    }
+                ctx.moveTo(this.particles[0].x, this.particles[0].y)
+                
+                // Draw the DNA strand
+                for (let i = 1; i < this.particles.length; i++) {
+                    const particle = this.particles[i]
+                    ctx.lineTo(particle.x, particle.y)
                 }
+                
+                ctx.strokeStyle = 'rgba(99, 102, 241, 0.2)' // indigo-500 with low opacity
+                ctx.lineWidth = 1
+                ctx.stroke()
+
+                // Draw particles
+                this.particles.forEach(particle => {
+                    ctx.beginPath()
+                    ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
+                    ctx.fillStyle = particle.color
+                    ctx.fill()
+                })
             }
         }
 
-        // Create particle array
-        const particles = Array.from({ length: 120 }, () => new Particle())
+        // Create DNA strands
+        const strands = [
+            new DNAStrand(canvas.width * 0.2, canvas.height * 0.5, 100, 100),
+            new DNAStrand(canvas.width * 0.8, canvas.height * 0.5, 100, 100),
+            new DNAStrand(canvas.width * 0.5, canvas.height * 0.3, 100, 100)
+        ]
 
         // Animation loop
         const animate = () => {
-            ctx.fillStyle = "rgba(0, 0, 0, 0.05)"
-            ctx.fillRect(0, 0, canvas.width, canvas.height)
-
-            // Add gradient overlay
-            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height)
-            gradient.addColorStop(0, 'rgba(92, 46, 145, 0.15)')
-            gradient.addColorStop(1, 'rgba(59, 130, 246, 0.15)')
+            ctx.clearRect(0, 0, canvas.width, canvas.height)
+            
+            // Draw background gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height)
+            gradient.addColorStop(0, 'rgba(15, 23, 42, 0.95)') // slate-900
+            gradient.addColorStop(1, 'rgba(30, 41, 59, 0.95)') // slate-800
             ctx.fillStyle = gradient
             ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-            particles.forEach((particle) => {
-                particle.update()
-                particle.draw()
+            // Draw DNA strands
+            strands.forEach(strand => {
+                strand.update()
+                strand.draw(ctx)
             })
-
-            connectParticles(particles)
 
             animationFrameId = requestAnimationFrame(animate)
         }
 
         animate()
 
+        // Cleanup
         return () => {
-            window.removeEventListener("resize", setCanvasSize)
+            window.removeEventListener("resize", resizeCanvas)
             cancelAnimationFrame(animationFrameId)
         }
     }, [])

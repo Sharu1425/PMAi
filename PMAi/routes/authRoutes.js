@@ -1,5 +1,6 @@
 import express from "express";
 import passport from "../passportConfig.js";
+import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
@@ -13,14 +14,24 @@ router.get("/google", (req, res, next) => {
 
 router.get(
     "/google/callback",
-    passport.authenticate("google", { failureRedirect: "http://localhost:5174/login" }),
+    passport.authenticate("google", { failureRedirect: "http://localhost:5173/login" }),
     (req, res) => {
         console.log("Google auth successful, user:", req.user);
-        // Send user data along with the redirect
-        const redirectUrl = new URL("http://localhost:5174/dashboard");
+        
+        // Generate JWT token
+        const token = jwt.sign(
+            { id: req.user._id, email: req.user.email },
+            process.env.JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        // Send user data and token
+        const redirectUrl = new URL("http://localhost:5173/dashboard");
+        redirectUrl.searchParams.append("token", token);
         redirectUrl.searchParams.append("userId", req.user._id);
         redirectUrl.searchParams.append("email", req.user.email);
         redirectUrl.searchParams.append("name", req.user.name);
+        redirectUrl.searchParams.append("profilePicture", req.user.profilePicture);
         res.redirect(redirectUrl.toString());
     }
 );
@@ -49,16 +60,29 @@ router.get("/status", (req, res) => {
         session: req.session,
         user: req.user
     });
+    
+    if (!req.isAuthenticated()) {
+        return res.json({ isAuthenticated: false, user: null });
+    }
+
+    // Generate new JWT token
+    const token = jwt.sign(
+        { id: req.user._id, email: req.user.email },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+    );
+
     res.json({ 
-        isAuthenticated: req.isAuthenticated(),
-        user: req.user ? {
+        isAuthenticated: true,
+        token,
+        user: {
             id: req.user._id,
             email: req.user.email,
             name: req.user.name,
-            profilePicture: req.user.profilePicture
-        } : null
+            profilePicture: req.user.profilePicture,
+            isAdmin: req.user.isAdmin
+        }
     });
 });
-
 
 export default router;

@@ -4,6 +4,13 @@ import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
+  server: {
+    port: 5173,
+    proxy: {
+      '/users': 'http://localhost:5001',
+      '/auth': 'http://localhost:5001',
+    },
+  },
   plugins: [react()],
   resolve: {
     alias: {

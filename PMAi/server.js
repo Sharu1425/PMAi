@@ -6,18 +6,24 @@ import passport from 'passport';
 import './passportConfig.js'; // Import passport config to register strategies
 import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes.js';
-import userRoutes from './routes/userRoute.js';
+import userRoutes from './routes/userRoutes.js';
 
 dotenv.config();
 
-console.log("Environment variables loaded");
+console.log("Environment variables loaded:", {
+    MONGODB_URI: process.env.MONGODB_URI,
+    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET
+});
 
 const app = express();
 
 // Middleware
 app.use(cors({
-    origin: 'http://localhost:5174',
-    credentials: true
+    origin: ['http://localhost:5173', 'http://localhost:5174'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 
@@ -27,8 +33,10 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: false, // Set to true in production with HTTPS
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        secure: false,
+        maxAge: 24 * 60 * 60 * 1000,
+        httpOnly: true,
+        sameSite: 'lax'
     }
 }));
 

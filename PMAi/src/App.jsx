@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, createBrowserRouter, RouterProvider } from 'react-router-dom'
 import './App.css'
 import Home from './pages/Home'
 import Login from './pages/Login'
@@ -34,7 +34,7 @@ function App() {
     }
     
     return (
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <div className="min-h-screen relative">
                 <AnimatedBackground />
                 <div className="relative z-10">
@@ -44,7 +44,7 @@ function App() {
                             <Route path="/" element={<Home />} />
                             <Route path="/login" element={<Login setUser={setUser} setIsAuthenticated={setIsAuthenticated} />} />
                             <Route path="/signup" element={<Signup setUser={setUser} setIsAuthenticated={setIsAuthenticated} />} />
-                            <Route path="/dashboard" element={<DashBoard />} />
+                            <Route path="/dashboard" element={<DashBoard user={user} setIsAuthenticated={setIsAuthenticated} />} />
                             {/* <Route path="/profile" element={<Profile />} />
                             <Route path="/settings" element={<Settings />} />
                             <Route path="/logout" element={<Logout />} /> */}

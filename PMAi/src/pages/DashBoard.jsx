@@ -5,7 +5,7 @@ import { BarChart3, Stethoscope, CalendarHeart, Brain, BellRing, UtensilsCrossed
 import { motion } from "framer-motion";
 import { FaUser, FaSignOutAlt, FaChartLine, FaCalendarAlt, FaBell } from "react-icons/fa";
 
-function DashboardContent({ user, setIsAuthenticated }) {
+function Dashboard({ user, setIsAuthenticated }) {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -195,10 +195,4 @@ function DashboardContent({ user, setIsAuthenticated }) {
   );
 }
 
-export default function Dashboard({ user, setIsAuthenticated }) {
-  return (
-    <Router>
-      <DashboardContent user={user} setIsAuthenticated={setIsAuthenticated} />
-    </Router>
-  );
-}
+export default Dashboard;

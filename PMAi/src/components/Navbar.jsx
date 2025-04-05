@@ -1,14 +1,27 @@
 "use client"
+import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom"
-import { FaUserCircle, FaSignOutAlt, FaSignInAlt, FaUserPlus, FaHeartbeat } from "react-icons/fa"
+import { FaUserCircle, FaSignOutAlt, FaSignInAlt, FaUserPlus, FaHeartbeat, User } from "react-icons/fa"
 
-const Navbar = () => {
+const Navbar = ({ isAuthenticated, user }) => {
     const navigate = useNavigate()
-    const isAuthenticated = false // This should come from your auth context
+    const [menuOpen, setMenuOpen] = useState(false);
+    const menuRef = useRef(null);
+
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (menuRef.current && !menuRef.current.contains(event.target)) {
+                setMenuOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     const handleLogout = () => {
-        // Handle logout logic here
-        navigate("/")
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/login");
     }
 
     return (
@@ -35,19 +48,42 @@ const Navbar = () => {
                                 >
                                     Dashboard
                                 </Link>
-                                <Link
-                                    to="/profile"
-                                    className="text-blue-200 hover:text-white px-3 py-2 rounded-lg transition-all duration-300 hover:bg-indigo-500/20"
-                                >
-                                    Profile
-                                </Link>
-                                <button
-                                    onClick={handleLogout}
-                                    className="flex items-center space-x-2 text-blue-200 hover:text-white px-3 py-2 rounded-lg transition-all duration-300 hover:bg-indigo-500/20"
-                                >
-                                    <FaSignOutAlt className="w-4 h-4" />
-                                    <span>Logout</span>
-                                </button>
+                                <div className="relative" ref={menuRef}>
+                                    <button
+                                        onClick={() => setMenuOpen(!menuOpen)}
+                                        className="flex items-center space-x-2 text-blue-200 hover:text-white px-3 py-2 rounded-lg transition-all duration-300 hover:bg-indigo-500/20"
+                                    >
+                                        {user?.profilePicture ? (
+                                            <img
+                                                src={user.profilePicture}
+                                                alt="Profile"
+                                                className="w-8 h-8 rounded-full border-2 border-indigo-500"
+                                            />
+                                        ) : (
+                                            <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center">
+                                                <User className="w-5 h-5 text-white" />
+                                            </div>
+                                        )}
+                                        <span className="text-sm font-medium">{user?.username || 'Profile'}</span>
+                                    </button>
+
+                                    {menuOpen && (
+                                        <div className="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-xl shadow-lg z-50 animate-fade-in">
+                                            <button
+                                                className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 rounded-t-xl"
+                                                onClick={() => navigate("/profile")}
+                                            >
+                                                View Profile
+                                            </button>
+                                            <button
+                                                className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 rounded-b-xl"
+                                                onClick={handleLogout}
+                                            >
+                                                Sign Out
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </>
                         ) : (
                             <>
@@ -105,35 +141,56 @@ const Navbar = () => {
                             >
                                 Dashboard
                             </Link>
-                            <Link
-                                to="/profile"
-                                className="block text-blue-200 hover:text-white px-3 py-2 rounded-lg transition-all duration-300 hover:bg-indigo-500/20"
-                            >
-                                Profile
-                            </Link>
-                            <button
-                                onClick={handleLogout}
-                                className="flex items-center space-x-2 text-blue-200 hover:text-white px-3 py-2 rounded-lg transition-all duration-300 hover:bg-indigo-500/20 w-full"
-                            >
-                                <FaSignOutAlt className="w-4 h-4" />
-                                <span>Logout</span>
-                            </button>
+                            <div className="relative">
+                                <button
+                                    onClick={() => setMenuOpen(!menuOpen)}
+                                    className="flex items-center space-x-2 text-blue-200 hover:text-white px-3 py-2 rounded-lg transition-all duration-300 hover:bg-indigo-500/20"
+                                >
+                                    {user?.profilePicture ? (
+                                        <img
+                                            src={user.profilePicture}
+                                            alt="Profile"
+                                            className="w-8 h-8 rounded-full border-2 border-indigo-500"
+                                        />
+                                    ) : (
+                                        <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center">
+                                            <User className="w-5 h-5 text-white" />
+                                        </div>
+                                    )}
+                                    <span className="text-sm font-medium">{user?.username || 'Profile'}</span>
+                                </button>
+
+                                {menuOpen && (
+                                    <div className="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-xl shadow-lg z-50 animate-fade-in">
+                                        <button
+                                            className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 rounded-t-xl"
+                                            onClick={() => navigate("/profile")}
+                                        >
+                                            View Profile
+                                        </button>
+                                        <button
+                                            className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 rounded-b-xl"
+                                            onClick={handleLogout}
+                                        >
+                                            Sign Out
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </>
                     ) : (
                         <>
                             <Link
                                 to="/login"
-                                className="flex items-center space-x-2 text-blue-200 hover:text-white px-3 py-2 rounded-lg transition-all duration-300 hover:bg-indigo-500/20"
+                                className="block text-blue-200 hover:text-white px-3 py-2 rounded-lg transition-all duration-300 hover:bg-indigo-500/20"
                             >
-                                <FaSignInAlt className="w-4 h-4" />
-                                <span>Login</span>
+                                Login
                             </Link>
                             <Link
                                 to="/signup"
-                                className="flex items-center space-x-2 bg-gradient-to-r from-indigo-500 to-blue-500 text-white px-4 py-2 rounded-lg transition-all duration-300 hover:from-indigo-600 hover:to-blue-600 transform hover:-translate-y-0.5 shadow-lg hover:shadow-xl"
+                                className="block text-blue-200 hover:text-white px-3 py-2 rounded-lg transition-all duration-300 hover:bg-indigo-500/20"
                             >
-                                <FaUserPlus className="w-4 h-4" />
-                                <span>Sign Up</span>
+                                Sign Up
                             </Link>
                         </>
                     )}

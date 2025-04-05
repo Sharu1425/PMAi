@@ -1,233 +1,138 @@
-"use client";
+import React, { useState, useEffect } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { BrowserRouter as Router, useNavigate } from "react-router-dom";
 
-import React, { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
-import axios from "axios";
-import * as faceapi from "@vladmandic/face-api";
-import AnimatedBackground from "../components/AnimatedBackground";
+function UserProfile(user) {
+  const navigate = useNavigate();
 
-function UserProfile({ user }) {
-    const [testHistory, setTestHistory] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
-    const [isRegisteringFace, setIsRegisteringFace] = useState(false);
-    const [faceRegistrationError, setFaceRegistrationError] = useState("");
-    const [averageScore, setAverageScore] = useState(0);
-    const [totalAttempts, setTotalAttempts] = useState(0);
-    const videoRef = useRef();
-    const [modelsLoaded, setModelsLoaded] = useState(false);
+  const [userData, setUserData] = useState({
+    name: "",
+    email: "",
+    age: "",
+    weight: "",
+    height: "",
+    gender: "",
+    bloodType: "",
+    allergies: "",
+    medicalConditions: "",
+    photo: "",
+  });
 
-    useEffect(() => {
-        if (user?._id) {
-            fetchTestHistory();
-            loadFaceModels();
-        }
-    }, [user?._id]);
+  const [isEditing, setIsEditing] = useState(true);
+  const [formData, setFormData] = useState(userData);
 
-    async function fetchTestHistory() {
-        try {
-            const response = await axios.get(`http://localhost:5001/db/users/${user._id}/results`, { 
-                withCredentials: true 
-            });
-            setTestHistory(response.data.results);
-            setAverageScore(response.data.averageScore);
-            setTotalAttempts(response.data.totalAttempts);
-            setLoading(false);
-        } catch (error) {
-            console.error("Error fetching test history:", error);
-            setError(error.response?.data?.error || "Failed to load test history");
-            setLoading(false);
-        }
-    }
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
+  };
 
-    async function loadFaceModels() {
-        try {
-            await Promise.all([
-                faceapi.nets.tinyFaceDetector.loadFromUri("/models"),
-                faceapi.nets.faceRecognitionNet.loadFromUri("/models"),
-                faceapi.nets.faceLandmark68Net.loadFromUri("/models")
-            ]);
-            setModelsLoaded(true);
-            startVideo();
-        } catch (error) {
-            console.error("Error loading face detection models:", error);
-            setFaceRegistrationError("Failed to load face detection models");
-        }
-    }
+  const handleSave = () => {
+    setUserData(formData);
+    setIsEditing(false);
+  };
 
-    function startVideo() {
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then((stream) => {
-                if (videoRef.current) {
-                    videoRef.current.srcObject = stream;
-                }
-            })
-            .catch((err) => {
-                console.error("Camera access error:", err);
-                setFaceRegistrationError("Failed to access camera");
-            });
-    }
+  const handleEditToggle = () => {
+    setIsEditing(!isEditing);
+  };
 
-    async function registerFace() {
-        if (!modelsLoaded || isRegisteringFace) return;
-        setIsRegisteringFace(true);
-        setFaceRegistrationError("");
+  useEffect(() => {
+    // Optional: fetch user data here if needed
+  }, []);
 
-        try {
-            const detections = await faceapi
-                .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions())
-                .withFaceLandmarks()
-                .withFaceDescriptor();
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 py-10 px-4">
+      <div className="max-w-2xl mx-auto bg-white rounded-3xl shadow-lg border border-gray-100 p-6 flex flex-col">
+        <h1 className="text-3xl font-bold text-gray-900 mb-4">
+          {isEditing ? "Create Your Profile" : "My Profile"}
+        </h1>
 
-            if (!detections) {
-                setFaceRegistrationError("No face detected. Please position your face in the camera.");
-                setIsRegisteringFace(false);
-                return;
-            }
+        <div className="flex items-center gap-4 mb-6">
+          <img
+            src={userData.photo || "/path/to/default-photo.jpg"}
+            alt="Profile"
+            className="w-24 h-24 rounded-full border-2 border-indigo-500 shadow-md"
+          />
+        </div>
 
-            const faceDescriptor = Array.from(detections.descriptor);
-            
-            const response = await axios.post("http://localhost:5001/auth/face/register", {
-                faceDescriptor,
-                userId: user._id
-            }, { withCredentials: true });
-
-            if (response.data.success) {
-                alert("Face registered successfully!");
-            } else {
-                setFaceRegistrationError(response.data.error || "Failed to register face");
-            }
-        } catch (error) {
-            console.error("Face registration error:", error);
-            setFaceRegistrationError(error.response?.data?.error || "An error occurred during face registration");
-        } finally {
-            setIsRegisteringFace(false);
-        }
-    }
-
-    return (
-        <>
-            <AnimatedBackground />
-            <div className="container mx-auto px-4 py-8">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="glass-card p-8 rounded-2xl neon-border shadow-xl backdrop-blur-xl border-1 relative overflow-hidden"
-                >
-                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-500/10"></div>
-                    
-                    {/* Profile Header */}
-                    <div className="relative mb-8">
-                        <div className="flex items-center space-x-4">
-                            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-2 border-purple-500/30 flex items-center justify-center">
-                                {user?.profilePicture ? (
-                                    <img 
-                                        src={user.profilePicture} 
-                                        alt="Profile" 
-                                        className="w-full h-full rounded-full object-cover"
-                                    />
-                                ) : (
-                                    <svg className="w-12 h-12 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                    </svg>
-                                )}
-                            </div>
-                            <div>
-                                <h2 className="text-2xl font-bold text-purple-200">{user?.name}</h2>
-                                <p className="text-purple-300">{user?.email}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Face Registration Section */}
-                    <div className="relative mb-8">
-                        <h3 className="text-xl font-semibold text-purple-200 mb-4">Face Recognition</h3>
-                        <div className="flex flex-col items-center space-y-4">
-                            <div className="relative">
-                                <video 
-                                    ref={videoRef} 
-                                    autoPlay 
-                                    className="rounded-lg w-[320px] h-[240px] object-cover"
-                                />
-                                <div className="absolute inset-0 border-2 border-purple-500/30 rounded-lg"></div>
-                            </div>
-                            <button
-                                onClick={registerFace}
-                                disabled={!modelsLoaded || isRegisteringFace}
-                                className={`px-6 py-2 rounded-lg font-medium transition-all duration-300 ${
-                                    isRegisteringFace 
-                                        ? "bg-purple-700/50 text-purple-300 cursor-not-allowed"
-                                        : "bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600"
-                                }`}
-                            >
-                                {isRegisteringFace ? "Registering..." : "Register Face"}
-                            </button>
-                            {faceRegistrationError && (
-                                <p className="text-red-400 text-sm">{faceRegistrationError}</p>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Test History Section */}
-                    <div className="relative">
-                        <h3 className="text-xl font-semibold text-purple-200 mb-4">Test History</h3>
-                        {loading ? (
-                            <div className="text-purple-200">Loading test history...</div>
-                        ) : error ? (
-                            <div className="text-red-400">{error}</div>
-                        ) : (
-                            <>
-                                <div className="grid grid-cols-2 gap-4 mb-6">
-                                    <div className="p-4 rounded-lg bg-purple-900/20 border border-purple-500/30">
-                                        <p className="text-purple-300">Total Attempts</p>
-                                        <p className="text-2xl font-bold text-purple-200">{totalAttempts}</p>
-                                    </div>
-                                    <div className="p-4 rounded-lg bg-purple-900/20 border border-purple-500/30">
-                                        <p className="text-purple-300">Average Score</p>
-                                        <p className="text-2xl font-bold text-purple-200">
-                                            {Math.round(averageScore * 100)}%
-                                        </p>
-                                    </div>
-                                </div>
-                                {testHistory.length === 0 ? (
-                                    <div className="text-purple-200">No test attempts yet</div>
-                                ) : (
-                                    <div className="space-y-4">
-                                        {testHistory.map((test, index) => (
-                                            <motion.div
-                                                key={index}
-                                                initial={{ opacity: 0, y: 20 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                transition={{ delay: index * 0.1 }}
-                                                className="p-4 rounded-lg bg-purple-900/20 border border-purple-500/30"
-                                            >
-                                                <div className="flex justify-between items-center">
-                                                    <div>
-                                                        <p className="text-purple-200">
-                                                            Score: {test.score}/{test.totalQuestions}
-                                                        </p>
-                                                        <p className="text-purple-300 text-sm">
-                                                            Date: {new Date(test.date).toLocaleDateString()}
-                                                        </p>
-                                                        <p className="text-purple-300 text-sm">
-                                                            Topic: {test.topic} • Difficulty: {test.difficulty}
-                                                        </p>
-                                                    </div>
-                                                    <div className="text-2xl font-bold text-purple-400">
-                                                        {Math.round((test.score / test.totalQuestions) * 100)}%
-                                                    </div>
-                                                </div>
-                                            </motion.div>
-                                        ))}
-                                    </div>
-                                )}
-                            </>
-                        )}
-                    </div>
-                </motion.div>
+        {isEditing ? (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-gray-700">Name</label>
+              <Input type="text" name="name" value={formData.name} onChange={handleInputChange} className="mt-2" />
             </div>
-        </>
-    );
+            <div>
+              <label className="block text-gray-700">Email</label>
+              <Input type="email" name="email" value={formData.email} onChange={handleInputChange} className="mt-2" />
+            </div>
+            <div>
+              <label className="block text-gray-700">Age</label>
+              <Input type="number" name="age" value={formData.age} onChange={handleInputChange} className="mt-2" />
+            </div>
+            <div>
+              <label className="block text-gray-700">Gender</label>
+              <select
+                name="gender"
+                value={formData.gender}
+                onChange={handleInputChange}
+                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-400 focus:outline-none"
+              >
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-gray-700">Weight (kg)</label>
+              <Input type="number" name="weight" value={formData.weight} onChange={handleInputChange} className="mt-2" />
+            </div>
+            <div>
+              <label className="block text-gray-700">Height (cm)</label>
+              <Input type="number" name="height" value={formData.height} onChange={handleInputChange} className="mt-2" />
+            </div>
+            <div>
+              <label className="block text-gray-700">Blood Type</label>
+              <Input type="text" name="bloodType" value={formData.bloodType} onChange={handleInputChange} className="mt-2" />
+            </div>
+            <div>
+              <label className="block text-gray-700">Allergies</label>
+              <Input type="text" name="allergies" value={formData.allergies} onChange={handleInputChange} className="mt-2" />
+            </div>
+            <div>
+              <label className="block text-gray-700">Medical Conditions</label>
+              <Input type="text" name="medicalConditions" value={formData.medicalConditions} onChange={handleInputChange} className="mt-2" />
+            </div>
+            <div className="mt-4 flex gap-4">
+              <Button onClick={handleSave} className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700">
+                Save Profile
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div className="mb-4">
+              <h3 className="text-gray-700">Name: {userData.name}</h3>
+              <h3 className="text-gray-700">Email: {userData.email}</h3>
+              <h3 className="text-gray-700">Age: {userData.age} years</h3>
+              <h3 className="text-gray-700">Gender: {userData.gender}</h3>
+              <h3 className="text-gray-700">Weight: {userData.weight} kg</h3>
+              <h3 className="text-gray-700">Height: {userData.height} cm</h3>
+              <h3 className="text-gray-700">Blood Type: {userData.bloodType}</h3>
+              <h3 className="text-gray-700">Allergies: {userData.allergies}</h3>
+              <h3 className="text-gray-700">Medical Conditions: {userData.medicalConditions}</h3>
+            </div>
+            <Button onClick={handleEditToggle} className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700">
+              Edit Profile
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
-export default UserProfile; 
+export default UserProfile

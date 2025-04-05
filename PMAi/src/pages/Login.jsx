@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
-import { useNavigate, useLocation } from "react-router-dom"
+import { useNavigate, useLocation, Link } from "react-router-dom"
 import { motion } from "framer-motion"
 import AnimatedBackground from "../components/AnimatedBackground"
 import axios from "axios"
@@ -84,15 +84,15 @@ function Login({ setUser, setIsAuthenticated }) {
                     className="w-full max-w-md"
                 >
                     <div className="glass-card p-8 rounded-2xl neon-border shadow-xl backdrop-blur-xl border-1 relative overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-500/10"></div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10"></div>
                         <motion.div
                             initial={{ y: -20, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
                             transition={{ delay: 0.2, duration: 0.5 }}
                             className="text-center mb-8 relative"
                         >
-                            <h2 className="text-4xl font-bold gradient-text mb-2 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-400">Welcome Back</h2>
-                            <p className="text-purple-200 text-lg">Access your medical assistant</p>
+                            <h2 className="text-4xl font-bold gradient-text mb-2 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400">Welcome Back</h2>
+                            <p className="text-blue-200 text-lg">Access your personal medical AI assistant</p>
                         </motion.div>
 
                         <div className="relative mb-8">
@@ -210,7 +210,7 @@ function Login({ setUser, setIsAuthenticated }) {
                             >
                                 <button 
                                     type="submit" 
-                                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-4 text-lg font-medium rounded-lg hover:from-purple-600 hover:to-pink-600 transition duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                                    className="w-full bg-gradient-to-r from-indigo-500 to-blue-500 text-white py-4 text-lg font-medium rounded-lg hover:from-indigo-600 hover:to-blue-600 transition duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                                 >
                                     Login
                                 </button>
@@ -268,13 +268,13 @@ function Login({ setUser, setIsAuthenticated }) {
                                         <span className="font-medium">GitHub</span>
                                     </button>
                                 </div>
-                                <p className="text-center text-purple-200">
+                                <p className="text-center text-blue-200">
                                     Don't have an account?{" "}
                                     <Link 
                                         to="/signup" 
-                                        className="text-purple-400 hover:text-purple-300 transition-colors duration-300 font-medium hover:underline"
+                                        className="text-indigo-400 hover:text-indigo-300 transition-colors duration-300 font-medium hover:underline"
                                     >
-                                        Sign up
+                                        Sign up for Your Medical AI Assistant
                                     </Link>
                                 </p>
                             </motion.div>

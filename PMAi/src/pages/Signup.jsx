@@ -69,15 +69,15 @@ function Signup({ setUser, setIsAuthenticated }) {
                     className="w-full max-w-md"
                 >
                     <div className="glass-card p-8 rounded-2xl neon-border shadow-xl backdrop-blur-xl border-1 relative overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-500/10"></div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-blue-500/10"></div>
                         <motion.div
                             initial={{ y: -20, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
                             transition={{ delay: 0.2, duration: 0.5 }}
                             className="text-center mb-8 relative"
                         >
-                            <h2 className="text-4xl font-bold gradient-text mb-2">Create Account</h2>
-                            <p className="text-purple-200 text-lg">Start your learning journey</p>
+                            <h2 className="text-4xl font-bold gradient-text mb-2 bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-blue-400">Create Account</h2>
+                            <p className="text-blue-200 text-lg">Access your Gen AI powered Personal Medical Assistant</p>
                         </motion.div>
 
                         <form onSubmit={handleSubmit} className="space-y-6 relative">
@@ -87,7 +87,7 @@ function Signup({ setUser, setIsAuthenticated }) {
                                 transition={{ duration: 0.3 }}
                             >
                                 <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.3 }}>
-                                    <label htmlFor="username" className="block text-sm font-medium text-purple-200 mb-2">
+                                    <label htmlFor="username" className="block text-sm font-medium text-blue-200 mb-2">
                                         Username
                                     </label>
                                     <input
@@ -96,13 +96,13 @@ function Signup({ setUser, setIsAuthenticated }) {
                                         value={username}
                                         onChange={(e) => setUsername(e.target.value)}
                                         required
-                                        className="w-full px-4 py-3 rounded-lg bg-purple-900/20 border border-purple-500/30 text-white placeholder-purple-300/50 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-300 hover:border-purple-400"
+                                        className="w-full px-4 py-3 rounded-lg bg-indigo-900/20 border border-indigo-500/30 text-white placeholder-indigo-300/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-300 hover:border-indigo-400"
                                         placeholder="Choose a username"
                                     />
                                 </motion.div>
 
                                 <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.4 }}>
-                                    <label htmlFor="email" className="block text-sm font-medium text-purple-200 mb-2">
+                                    <label htmlFor="email" className="block text-sm font-medium text-blue-200 mb-2">
                                         Email
                                     </label>
                                     <input
@@ -111,13 +111,13 @@ function Signup({ setUser, setIsAuthenticated }) {
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         required
-                                        className="w-full px-4 py-3 rounded-lg bg-purple-900/20 border border-purple-500/30 text-white placeholder-purple-300/50 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-300 hover:border-purple-400"
+                                        className="w-full px-4 py-3 rounded-lg bg-indigo-900/20 border border-indigo-500/30 text-white placeholder-indigo-300/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-300 hover:border-indigo-400"
                                         placeholder="Enter your email"
                                     />
                                 </motion.div>
 
                                 <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.5 }}>
-                                    <label htmlFor="password" className="block text-sm font-medium text-purple-200 mb-2">
+                                    <label htmlFor="password" className="block text-sm font-medium text-blue-200 mb-2">
                                         Password
                                     </label>
                                     <input
@@ -126,13 +126,13 @@ function Signup({ setUser, setIsAuthenticated }) {
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         required
-                                        className="w-full px-4 py-3 rounded-lg bg-purple-900/20 border border-purple-500/30 text-white placeholder-purple-300/50 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-300 hover:border-purple-400"
+                                        className="w-full px-4 py-3 rounded-lg bg-indigo-900/20 border border-indigo-500/30 text-white placeholder-indigo-300/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-300 hover:border-indigo-400"
                                         placeholder="Create a password"
                                     />
                                 </motion.div>
 
                                 <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.6 }}>
-                                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-purple-200 mb-2">
+                                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-blue-200 mb-2">
                                         Confirm Password
                                     </label>
                                     <input
@@ -141,7 +141,7 @@ function Signup({ setUser, setIsAuthenticated }) {
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
                                         required
-                                        className="w-full px-4 py-3 rounded-lg bg-purple-900/20 border border-purple-500/30 text-white placeholder-purple-300/50 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-300 hover:border-purple-400"
+                                        className="w-full px-4 py-3 rounded-lg bg-indigo-900/20 border border-indigo-500/30 text-white placeholder-indigo-300/50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-300 hover:border-indigo-400"
                                         placeholder="Confirm your password"
                                     />
                                 </motion.div>
@@ -155,7 +155,7 @@ function Signup({ setUser, setIsAuthenticated }) {
                             >
                                 <button 
                                     type="submit" 
-                                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-4 text-lg font-medium rounded-lg hover:from-purple-600 hover:to-pink-600 transition duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                                    className="w-full bg-gradient-to-r from-indigo-500 to-blue-500 text-white py-4 text-lg font-medium rounded-lg hover:from-indigo-600 hover:to-blue-600 transition duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                                 >
                                     Sign Up
                                 </button>
@@ -170,10 +170,10 @@ function Signup({ setUser, setIsAuthenticated }) {
                                 )}
                                 <div className="relative my-6">
                                     <div className="absolute inset-0 flex items-center">
-                                        <div className="w-full border-t border-purple-500/30"></div>
+                                        <div className="w-full border-t border-indigo-500/30"></div>
                                     </div>
                                     <div className="relative flex justify-center text-sm">
-                                        <span className="px-2 bg-purple-900/50 text-purple-300">Or continue with</span>
+                                        <span className="px-2 bg-indigo-900/50 text-blue-300">Or continue with</span>
                                     </div>
                                 </div>
                                 <div className="flex flex-col space-y-3">
@@ -203,11 +203,11 @@ function Signup({ setUser, setIsAuthenticated }) {
                                         <span className="font-medium">Google</span>
                                     </button>
                                 </div>
-                                <p className="text-center text-purple-200">
+                                <p className="text-center text-blue-200">
                                     Already have an account?{" "}
                                     <Link 
                                         to="/login" 
-                                        className="text-purple-400 hover:text-purple-300 transition-colors duration-300 font-medium hover:underline"
+                                        className="text-indigo-400 hover:text-indigo-300 transition-colors duration-300 font-medium hover:underline"
                                     >
                                         Login
                                     </Link>

@@ -3,8 +3,9 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './App.css'
 import Home from './pages/Home'
 import Login from './pages/Login'
+import Signup from './pages/Signup'
 import Navbar from './components/Navbar'
-//import Register from './pages/Register'
+import AnimatedBackground from './components/AnimatedBackground'
 //import Dashboard from './pages/Dashboard'
 //import Profile from './pages/Profile'
 //import Settings from './pages/Settings'
@@ -34,17 +35,20 @@ function App() {
     
     return (
         <BrowserRouter>
-            <div className="min-h-screen">
+            <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-950 to-indigo-950">
+                <AnimatedBackground />
                 <Navbar isAuthenticated={isAuthenticated} onLogout={handleLogout} />
-                <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/login" element={<Login setUser={setUser} setIsAuthenticated={setIsAuthenticated} />} />
-                    {/* <Route path="/register" element={<Register />} />
-                    <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/settings" element={<Settings />} />
-                    <Route path="/logout" element={<Logout />} /> */}
-                </Routes>
+                <div className="pt-16"> {/* Add padding top to account for fixed navbar */}
+                    <Routes>
+                        <Route path="/" element={<Home />} />
+                        <Route path="/login" element={<Login setUser={setUser} setIsAuthenticated={setIsAuthenticated} />} />
+                        <Route path="/signup" element={<Signup setUser={setUser} setIsAuthenticated={setIsAuthenticated} />} />
+                        {/* <Route path="/dashboard" element={<Dashboard />} />
+                        <Route path="/profile" element={<Profile />} />
+                        <Route path="/settings" element={<Settings />} />
+                        <Route path="/logout" element={<Logout />} /> */}
+                    </Routes>
+                </div>
             </div>
         </BrowserRouter>
     )

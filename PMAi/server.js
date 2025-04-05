@@ -7,6 +7,7 @@ import './passportConfig.js'; // Import passport config to register strategies
 import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import axios from 'axios';
 
 dotenv.config();
 
@@ -20,12 +21,13 @@ const app = express();
 
 // Middleware
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:5174'],
+    origin: 'http://localhost:5173',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Session configuration
 app.use(session({
@@ -48,6 +50,42 @@ app.use(passport.session());
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
 
+// Proxy routes for Gemini API
+app.post('/api/symptom-analysis', async (req, res) => {
+    try {
+        // Forward the request to the Gemini API server
+        const response = await axios.post('http://localhost:3001/api/analyze-symptoms', req.body);
+        return res.json(response.data);
+    } catch (error) {
+        console.error('Error proxying symptom analysis request:', error);
+        
+        // Return appropriate error response
+        return res.status(error.response?.status || 500).json({
+            error: 'Failed to analyze symptoms',
+            message: error.response?.data?.message || error.message,
+        });
+    }
+});
+
+// Health check endpoint for the symptom analysis service
+app.get('/api/symptom-service-status', async (req, res) => {
+    try {
+        const response = await axios.get('http://localhost:3001/api/health');
+        return res.json({ 
+            status: 'ok',
+            serviceAvailable: true,
+            message: response.data.message
+        });
+    } catch (error) {
+        console.error('Symptom analysis service health check failed:', error);
+        return res.json({ 
+            status: 'error',
+            serviceAvailable: false,
+            message: 'Symptom analysis service is not available'
+        });
+    }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);
@@ -63,4 +101,8 @@ mongoose.connect(process.env.MONGODB_URI)
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+    // Check connection to symptom analysis service
+    axios.get('http://localhost:3001/api/health')
+        .then(() => console.log('Connected to symptom analysis service'))
+        .catch(err => console.error('Symptom analysis service is not available:', err.message));
 }); 

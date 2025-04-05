@@ -1,6 +1,7 @@
 import express from "express";
 import { loginUser, regUser } from "../controllers/userController.js";
 import User from "../models/user.js";
+import passport from "passport";
 
 const router = express.Router();
 
@@ -8,22 +9,9 @@ const router = express.Router();
 router.get("/debug/user/:email", async (req, res) => {
     try {
         const { email } = req.params;
-        console.log("Checking user existence for email:", email);
         const user = await User.findOne({ email });
-        console.log("User found:", user ? "Yes" : "No");
         
         if (user) {
-            console.log("User details:", {
-                id: user._id,
-                email: user.email,
-                username: user.username,
-                hasPassword: !!user.password,
-                isGoogleUser: !!user.googleId,
-                passwordHash: user.password ? "Exists" : "None",
-                createdAt: user.createdAt,
-                lastLogin: user.lastLogin
-            });
-            
             res.json({ 
                 exists: true, 
                 user: {
@@ -48,14 +36,21 @@ router.get("/debug/user/:email", async (req, res) => {
 // Route for user login
 router.post("/login", async (req, res) => {
     try {
+        // Extract credentials from request body
         const { email, password } = req.body;
-        console.log("Login attempt for email:", email);
-        const login = await loginUser(email, password);
-        res.status(login.status).json({ 
-            message: login.message, 
-            error: login.error, 
-            user: login.user,
-            token: login.token 
+        
+        // Log the login attempt (do not log passwords)
+        console.log(`Login attempt for email: ${email}`);
+        
+        // Call the login controller function
+        const result = await loginUser(email, password);
+        
+        // Send appropriate response based on the result
+        res.status(result.status).json({ 
+            message: result.message, 
+            error: result.error, 
+            user: result.user,
+            token: result.token 
         });
     } catch (error) {
         console.error("Login error:", error);
@@ -69,19 +64,75 @@ router.post("/login", async (req, res) => {
 // Route for user registration
 router.post("/register", async (req, res) => {
     try {
+        // Extract user data from request body
         const { username, email, password } = req.body;
-        console.log("Registration attempt for email:", email);
-        const reg = await regUser(username, email, password);
-        res.status(reg.status).json({ 
-            message: reg.message, 
-            error: reg.error,
-            user: reg.user,
-            token: reg.token 
+        
+        // Validate required fields
+        if (!username || !email || !password) {
+            return res.status(400).json({
+                message: "Missing required fields",
+                error: "All fields are required"
+            });
+        }
+        
+        // Call the registration controller function
+        const result = await regUser(username, email, password);
+        
+        // Send appropriate response based on the result
+        res.status(result.status).json({ 
+            message: result.message, 
+            error: result.error,
+            user: result.user,
+            token: result.token 
         });
     } catch (error) {
         console.error("Registration error:", error);
         res.status(500).json({ 
             message: "An error occurred during registration",
+            error: error.message 
+        });
+    }
+});
+
+// Protected route to get user profile
+router.get("/profile", passport.authenticate('jwt', { session: false }), async (req, res) => {
+    try {
+        // Fetch user data excluding password for security
+        const user = await User.findById(req.user.id).select('-password');
+        
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        
+        res.json(user);
+    } catch (error) {
+        console.error("Profile error:", error);
+        res.status(500).json({ error: "Error fetching profile" });
+    }
+});
+
+// Route for user logout
+router.post("/logout", async (req, res) => {
+    try {
+        // For JWT-based authentication, the client should remove the token
+        // Here we just log the logout action and return a success response
+        
+        // If userId is provided, update the lastLogout timestamp in user record
+        const { userId } = req.body;
+        if (userId) {
+            await User.findByIdAndUpdate(userId, { lastLogout: Date.now() });
+        }
+        
+        // Return success
+        res.status(200).json({ 
+            success: true,
+            message: "Logout successful" 
+        });
+    } catch (error) {
+        console.error("Logout error:", error);
+        res.status(500).json({ 
+            success: false,
+            message: "An error occurred during logout",
             error: error.message 
         });
     }

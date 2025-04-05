@@ -14,7 +14,16 @@ function Login({ setUser, setIsAuthenticated }) {
     const handleSubmit = async (e) => {
         e.preventDefault()
         try {
-            console.log("Attempting login with:", { email })
+            setError("") 
+            
+            
+            // Basic validation
+            if (!email || !password) {
+                setError("Please enter both email and password")
+                return
+            }
+            
+            // Make login request to the server
             const response = await axios.post("http://localhost:5001/users/login", {
                 email,
                 password
@@ -22,22 +31,45 @@ function Login({ setUser, setIsAuthenticated }) {
             
             console.log("Login response:", response.data)
             
+            // Check for errors in the response
             if (response.data.error) {
-                setError(response.data.error)
+                setError(response.data.message || response.data.error)
                 return
             }
             
+            // Extract token and user data
             const { token, user } = response.data
+            
+            if (!token || !user) {
+                setError("Login failed: Invalid response from server")
+                return
+            }
+            
+            // Store authentication data
             localStorage.setItem("token", token)
             localStorage.setItem("user", JSON.stringify(user))
+            
+            // Update app state
             setUser(user)
             setIsAuthenticated(true)
+            
+            // Redirect to dashboard
             navigate("/dashboard")
         } catch (err) {
             console.error("Login error:", err)
-            const errorMessage = err.response?.data?.error || err.response?.data?.message || "An error occurred during login"
-            setError(errorMessage)
-            console.log("Detailed error response:", err.response?.data)
+            
+            // Handle different kinds of errors
+            if (err.response) {
+                // Server responded with an error status
+                const errorMessage = err.response.data.message || err.response.data.error || "Authentication failed"
+                setError(errorMessage)
+            } else if (err.request) {
+                // Request was made but no response
+                setError("Server not responding. Please try again later.")
+            } else {
+                // Something else went wrong
+                setError("Login failed: " + err.message)
+            }
         }
     }
 
@@ -189,6 +221,7 @@ function Login({ setUser, setIsAuthenticated }) {
                             >
                                 Login
                             </motion.button>
+                            
                             {error && (
                                 <motion.p 
                                     initial={{ opacity: 0, y: -10 }}

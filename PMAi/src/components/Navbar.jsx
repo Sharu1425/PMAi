@@ -1,14 +1,78 @@
 "use client"
+import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom"
 import { FaUserCircle, FaSignOutAlt, FaSignInAlt, FaUserPlus, FaHeartbeat } from "react-icons/fa"
+import axios from "axios";
 
-const Navbar = () => {
+const Navbar = ({ isAuthenticated, user, onLogout }) => {
     const navigate = useNavigate()
-    const isAuthenticated = false // This should come from your auth context
+    const [menuOpen, setMenuOpen] = useState(false);
+    const menuRef = useRef(null);
 
-    const handleLogout = () => {
-        // Handle logout logic here
-        navigate("/")
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (menuRef.current && !menuRef.current.contains(event.target)) {
+                setMenuOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const handleLogout = async () => {
+        try {
+            // Close the menu if it's open
+            setMenuOpen(false);
+            
+            // Get the token and user from localStorage
+            const token = localStorage.getItem('token');
+            const userData = localStorage.getItem('user');
+            
+            // Call the backend logout endpoint
+            if (token) {
+                const parsedUser = userData ? JSON.parse(userData) : {};
+                
+                // Make the logout request to the backend
+                await axios.post(
+                    "http://localhost:5001/users/logout",
+                    { userId: parsedUser.id },
+                    { 
+                        headers: { 
+                            Authorization: `Bearer ${token}` 
+                        } 
+                    }
+                );
+            }
+            
+            // Call the parent's logout handler
+            if (onLogout) {
+                onLogout();
+            }
+            
+            // Clear any local storage items
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            
+            // Display success message (optional)
+            console.log('Logout successful');
+            
+            // Navigate to login page
+            navigate('/login', { replace: true });
+        } catch (error) {
+            console.error('Logout error:', error);
+            
+            // Even if there's an error on the server, we should still clean up locally
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            
+            // Call the parent's logout handler even if there was an error
+            if (onLogout) {
+                onLogout();
+            }
+            
+            // Still navigate to login page even if there's an error
+            navigate('/login', { replace: true });
+        }
     }
 
     return (
@@ -36,18 +100,59 @@ const Navbar = () => {
                                     Dashboard
                                 </Link>
                                 <Link
-                                    to="/profile"
+                                    to="/symptoms"
                                     className="text-blue-200 hover:text-white px-3 py-2 rounded-lg transition-all duration-300 hover:bg-indigo-500/20"
                                 >
-                                    Profile
+                                    Symptoms
                                 </Link>
-                                <button
-                                    onClick={handleLogout}
-                                    className="flex items-center space-x-2 text-blue-200 hover:text-white px-3 py-2 rounded-lg transition-all duration-300 hover:bg-indigo-500/20"
+                                <Link
+                                    to="/diet"
+                                    className="text-blue-200 hover:text-white px-3 py-2 rounded-lg transition-all duration-300 hover:bg-indigo-500/20"
                                 >
-                                    <FaSignOutAlt className="w-4 h-4" />
-                                    <span>Logout</span>
-                                </button>
+                                    Diet
+                                </Link>
+                                <Link
+                                    to="/reminders"
+                                    className="text-blue-200 hover:text-white px-3 py-2 rounded-lg transition-all duration-300 hover:bg-indigo-500/20"
+                                >
+                                    Reminders
+                                </Link>
+                                <div className="relative" ref={menuRef}>
+                                    <button
+                                        onClick={() => setMenuOpen(!menuOpen)}
+                                        className="flex items-center space-x-2 text-blue-200 hover:text-white px-3 py-2 rounded-lg transition-all duration-300 hover:bg-indigo-500/20"
+                                    >
+                                        {user?.profilePicture ? (
+                                            <img
+                                                src={user.profilePicture}
+                                                alt="Profile"
+                                                className="w-8 h-8 rounded-full border-2 border-indigo-500"
+                                            />
+                                        ) : (
+                                            <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center">
+                                                <FaUserCircle className="w-5 h-5 text-white" />
+                                            </div>
+                                        )}
+                                        <span className="text-sm font-medium">{user?.username || 'Profile'}</span>
+                                    </button>
+
+                                    {menuOpen && (
+                                        <div className="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-xl shadow-lg z-50 animate-fade-in">
+                                            <button
+                                                className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 rounded-t-xl"
+                                                onClick={() => navigate("/profile")}
+                                            >
+                                                View Profile
+                                            </button>
+                                            <button
+                                                className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 rounded-b-xl"
+                                                onClick={handleLogout}
+                                            >
+                                                Sign Out
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </>
                         ) : (
                             <>
@@ -75,6 +180,7 @@ const Navbar = () => {
                             type="button"
                             className="text-blue-200 hover:text-white focus:outline-none"
                             aria-label="Toggle menu"
+                            onClick={() => setMenuOpen(!menuOpen)}
                         >
                             <svg
                                 className="h-6 w-6"
@@ -95,52 +201,83 @@ const Navbar = () => {
             </div>
 
             {/* Mobile Menu */}
-            <div className="md:hidden">
-                <div className="px-2 pt-2 pb-3 space-y-1">
-                    {isAuthenticated ? (
-                        <>
-                            <Link
-                                to="/dashboard"
-                                className="block text-blue-200 hover:text-white px-3 py-2 rounded-lg transition-all duration-300 hover:bg-indigo-500/20"
-                            >
-                                Dashboard
-                            </Link>
-                            <Link
-                                to="/profile"
-                                className="block text-blue-200 hover:text-white px-3 py-2 rounded-lg transition-all duration-300 hover:bg-indigo-500/20"
-                            >
-                                Profile
-                            </Link>
-                            <button
-                                onClick={handleLogout}
-                                className="flex items-center space-x-2 text-blue-200 hover:text-white px-3 py-2 rounded-lg transition-all duration-300 hover:bg-indigo-500/20 w-full"
-                            >
-                                <FaSignOutAlt className="w-4 h-4" />
-                                <span>Logout</span>
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            <Link
-                                to="/login"
-                                className="flex items-center space-x-2 text-blue-200 hover:text-white px-3 py-2 rounded-lg transition-all duration-300 hover:bg-indigo-500/20"
-                            >
-                                <FaSignInAlt className="w-4 h-4" />
-                                <span>Login</span>
-                            </Link>
-                            <Link
-                                to="/signup"
-                                className="flex items-center space-x-2 bg-gradient-to-r from-indigo-500 to-blue-500 text-white px-4 py-2 rounded-lg transition-all duration-300 hover:from-indigo-600 hover:to-blue-600 transform hover:-translate-y-0.5 shadow-lg hover:shadow-xl"
-                            >
-                                <FaUserPlus className="w-4 h-4" />
-                                <span>Sign Up</span>
-                            </Link>
-                        </>
-                    )}
+            {menuOpen && (
+                <div className="md:hidden">
+                    <div className="px-2 pt-2 pb-3 space-y-1">
+                        {isAuthenticated ? (
+                            <>
+                                <Link
+                                    to="/dashboard"
+                                    className="block text-blue-200 hover:text-white px-3 py-2 rounded-lg transition-all duration-300 hover:bg-indigo-500/20"
+                                >
+                                    Dashboard
+                                </Link>
+                                <Link
+                                    to="/symptoms"
+                                    className="block text-blue-200 hover:text-white px-3 py-2 rounded-lg transition-all duration-300 hover:bg-indigo-500/20"
+                                >
+                                    Symptoms
+                                </Link>
+                                <Link
+                                    to="/diet"
+                                    className="block text-blue-200 hover:text-white px-3 py-2 rounded-lg transition-all duration-300 hover:bg-indigo-500/20"
+                                >
+                                    Diet
+                                </Link>
+                                <Link
+                                    to="/reminders"
+                                    className="block text-blue-200 hover:text-white px-3 py-2 rounded-lg transition-all duration-300 hover:bg-indigo-500/20"
+                                >
+                                    Reminders
+                                </Link>
+                                <div className="relative">
+                                    <button
+                                        onClick={() => navigate("/profile")}
+                                        className="flex items-center space-x-2 text-blue-200 hover:text-white px-3 py-2 rounded-lg transition-all duration-300 hover:bg-indigo-500/20 w-full"
+                                    >
+                                        {user?.profilePicture ? (
+                                            <img
+                                                src={user.profilePicture}
+                                                alt="Profile"
+                                                className="w-8 h-8 rounded-full border-2 border-indigo-500"
+                                            />
+                                        ) : (
+                                            <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center">
+                                                <FaUserCircle className="w-5 h-5 text-white" />
+                                            </div>
+                                        )}
+                                        <span className="text-sm font-medium">{user?.username || 'Profile'}</span>
+                                    </button>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="flex items-center space-x-2 text-blue-200 hover:text-white px-3 py-2 rounded-lg transition-all duration-300 hover:bg-indigo-500/20 w-full"
+                                    >
+                                        <FaSignOutAlt className="w-4 h-4" />
+                                        <span>Sign Out</span>
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <Link
+                                    to="/login"
+                                    className="block text-blue-200 hover:text-white px-3 py-2 rounded-lg transition-all duration-300 hover:bg-indigo-500/20"
+                                >
+                                    Login
+                                </Link>
+                                <Link
+                                    to="/signup"
+                                    className="block text-blue-200 hover:text-white px-3 py-2 rounded-lg transition-all duration-300 hover:bg-indigo-500/20"
+                                >
+                                    Sign Up
+                                </Link>
+                            </>
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
         </nav>
-    )
-}
+    );
+};
 
-export default Navbar 
+export default Navbar; 

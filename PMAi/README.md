@@ -1,103 +1,80 @@
-# PMAi - Personal Medical Assistant
+# PMAi - Personal Medical Assistant with AI
 
-A modern web application that provides personalized medical assistance using AI technology.
+PMAi is a web application that serves as a personal medical assistant, providing users with features like symptom analysis, diet recommendations, medication reminders, and more.
 
 ## Features
 
-- User authentication (Email/Password & Google)
-- Secure JWT-based authentication
-- AI-powered medical assistance using Google's Gemini
-- Modern UI with medical theme
-- Responsive design
+- **Symptom Analysis**: AI-powered symptom analyzer using Google's Gemini API
+- **Diet Recommendations**: Get personalized diet suggestions
+- **Medication Reminders**: Track and get reminders for your medications
+- **User Profile**: Manage your personal health information
+- **Authentication**: Secure login with email or Google authentication
 
-## Tech Stack
+## Getting Started
 
-### Frontend
-- React
-- Tailwind CSS
-- Framer Motion
-- React Router
-- Axios
+### Prerequisites
 
-### Backend
-- Node.js
-- Express
-- MongoDB
-- JWT Authentication
-- Google OAuth
-- Google Gemini API
+- Node.js (v16 or higher)
+- MongoDB instance
+- Google Gemini API key
+- For Google authentication: Google OAuth credentials
 
-## Setup Instructions
+### Environment Variables
 
-### Backend Setup
+Create a `.env` file in the root directory with the following variables:
 
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
+```
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_jwt_secret
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GEMINI_API_KEY=your_gemini_api_key
+```
 
+### Installation
+
+1. Clone the repository
 2. Install dependencies:
-   ```bash
+   ```
    npm install
    ```
-
-3. Create a `.env` file based on `.env.example`:
-   ```bash
-   cp .env.example .env
+3. Start all services:
+   ```
+   npm run start-all
    ```
 
-4. Update the `.env` file with your credentials:
-   - MongoDB URI
-   - JWT Secret
-   - Google Client ID
-   - Gemini API Key
+This will launch:
+- React frontend on port 5173
+- Main server on port 5001
+- Gemini API server on port 3001
 
-5. Start the development server:
-   ```bash
-   npm run dev
-   ```
+## Server Architecture
 
-### Frontend Setup
+The application consists of multiple servers:
 
-1. Navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
+1. **Frontend Server (Vite)**: Serves the React application
+2. **Main Server (server.js)**: Handles authentication, user data, and proxies requests to the AI server
+3. **AI Server (app.js)**: Connects to Google's Gemini API for AI-powered features
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+## Using the Symptom Analyzer
 
-3. Create a `.env` file:
-   ```
-   REACT_APP_API_URL=http://localhost:5001
-   REACT_APP_GOOGLE_CLIENT_ID=your_google_client_id
-   ```
+1. Navigate to the Symptoms page
+2. Enter your symptoms in the chat interface
+3. The AI will analyze your symptoms and provide feedback
+4. Continue the conversation to get more detailed information
 
-4. Start the development server:
-   ```bash
-   npm start
-   ```
+## Development
 
-## API Endpoints
+- Run frontend only: `npm run dev`
+- Run main server only: `npm run server`
+- Run AI server only: `npm run ai-server`
 
-### Authentication
-- POST `/api/auth/register` - Register new user
-- POST `/api/auth/login` - Login user
-- POST `/api/auth/google` - Google OAuth
-- GET `/api/auth/me` - Get current user
+## Troubleshooting
 
-### Gemini API
-- POST `/api/gemini/query` - Get AI response for medical queries
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+- If the symptom analyzer isn't working, check if:
+  - All servers are running
+  - The Gemini API key is valid
+  - The main server can connect to the AI server
 
 ## License
 

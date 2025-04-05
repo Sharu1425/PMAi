@@ -29,10 +29,6 @@ const userSchema = new mongoose.Schema({
     },
     name: String,
     profilePicture: String,
-    faceDescriptor: {
-        type: Array,
-        default: null
-    },
     createdAt: {
         type: Date,
         default: Date.now
@@ -43,13 +39,18 @@ const userSchema = new mongoose.Schema({
     }
 });
 
-// Only hash password if it's modified and user is not using Google auth
+// Hash password before saving
 userSchema.pre("save", async function(next) {
+    // Only hash the password if it's modified (or new)
     if (!this.isModified("password") || this.googleId) {
         return next();
     }
+    
     try {
+        // Generate a salt
         const salt = await bcrypt.genSalt(10);
+        
+        // Hash the password using the salt
         this.password = await bcrypt.hash(this.password, salt);
         next();
     } catch (error) {
@@ -58,14 +59,17 @@ userSchema.pre("save", async function(next) {
 });
 
 // Method to compare password
-userSchema.methods.comparePassword = async function(candidatePassword) {
-    if (this.googleId) {
-        return false; // Google users don't have a password to compare
+userSchema.methods.comparePassword = async function(plainPassword) {
+    if (!this.password) {
+        return false;
     }
+    
     try {
-        return await bcrypt.compare(candidatePassword, this.password);
+        // Compare plain password with the hashed password in the database
+        return await bcrypt.compare(plainPassword, this.password);
     } catch (error) {
-        throw error;
+        console.error("Password comparison error:", error);
+        return false;
     }
 };
 

@@ -1,0 +1,127 @@
+import React, { useState, useRef, useEffect } from "react";
+import { BrowserRouter as Router, useNavigate } from "react-router-dom";
+import { Card, CardContent } from "@/components/ui/card";
+import { BarChart3, Stethoscope, CalendarHeart, Brain, BellRing, UtensilsCrossed, ActivitySquare } from "lucide-react";
+
+function DashboardContent() {
+  const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  const cards = [
+    {
+      icon: <Stethoscope className="text-blue-500" size={32} />,
+      label: "Symptom Diagnoser",
+      value: "Check Symptoms",
+      link: "/symptoms"
+    },
+    {
+      icon: <UtensilsCrossed className="text-pink-500" size={32} />,
+      label: "Diet Plan",
+      value: "Overview",
+      link: "/diet"
+    },
+    {
+      icon: <BellRing className="text-yellow-500" size={32} />,
+      label: "Medical Reminders",
+      value: "Next: 6PM",
+      link: "/reminders"
+    },
+    {
+      icon: <ActivitySquare className="text-emerald-500" size={32} />,
+      label: "Health Tracker",
+      value: "Basic Stats",
+      link: "/health-tracking"
+    },
+    {
+      icon: <CalendarHeart className="text-green-500" size={32} />,
+      label: "Appointments",
+      value: "3 Upcoming",
+      link: "/appointments"
+    },
+    {
+      icon: <BarChart3 className="text-purple-500" size={32} />,
+      label: "Health Score",
+      value: "82",
+      link: "/health-score"
+    },
+    {
+      icon: <Brain className="text-orange-500" size={32} />,
+      label: "AI Suggestions",
+      value: "12 Tips",
+      link: "/ai-suggestions"
+    }
+  ];
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 p-6">
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Personalized Healthcare Assistant</h1>
+        <div className="relative" ref={menuRef}>
+          <div
+            className="flex items-center space-x-3 cursor-pointer hover:bg-gray-100 p-2 rounded-full transition"
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
+            <img
+              src="/path/to/user-photo.jpg"
+              alt="Profile"
+              className="w-12 h-12 rounded-full border-2 border-indigo-500 shadow-md"
+            />
+          </div>
+          {menuOpen && (
+            <div className="absolute right-0 mt-2 w-52 bg-white border border-gray-200 rounded-xl shadow-lg z-50 animate-fade-in">
+              <button
+                className="block w-full text-left px-5 py-3 text-sm text-gray-700 hover:bg-gray-100 rounded-t-xl"
+                onClick={() => navigate("/profile")}
+              >
+                View Profile
+              </button>
+              <button
+                className="block w-full text-left px-5 py-3 text-sm text-gray-700 hover:bg-gray-100 rounded-b-xl"
+                onClick={() => alert("Signed out")}
+              >
+                Sign Out
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {cards.map((card, index) => (
+          <Card
+            key={index}
+            onClick={() => navigate(card.link)}
+            className="cursor-pointer bg-white hover:shadow-2xl transition-all duration-300 rounded-2xl border border-gray-200"
+          >
+            <CardContent className="p-6 flex items-center gap-5">
+              {card.icon}
+              <div>
+                <p className="text-sm text-gray-500 font-medium uppercase tracking-wide">{card.label}</p>
+                <p className="text-xl font-bold text-gray-900 mt-1">{card.value}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function Dashboard() {
+  return (
+    <Router>
+      <DashboardContent />
+    </Router>
+  );
+}

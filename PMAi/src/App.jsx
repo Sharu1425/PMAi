@@ -6,17 +6,18 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Navbar from './components/Navbar'
 import AnimatedBackground from './components/AnimatedBackground'
-import DashBoard from './pages/DashBoard'
+import Dashboard from './pages/DashBoard'
 import UserProfile from './pages/UserProfile'
+import SymptomAnalyser from './pages/SymptomAnalyser'
+import DietRecom from './pages/DietRecom'
+import MedsReminder from './pages/MedsReminder'
 //import Settings from './pages/Settings'
 //import Logout from './pages/Logout'
 
 function App() {
     const [user, setUser] = useState(null)
     const [isAuthenticated, setIsAuthenticated] = useState(false)
-    const [isAdmin, setIsAdmin] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
-    const [error, setError] = useState(null)
 
     useEffect(() => {
         const token = localStorage.getItem('token')
@@ -29,9 +30,23 @@ function App() {
     }, [])
     
     const handleLogout = () => {
-        localStorage.removeItem('user')
-        setUser(null)
-        setIsAuthenticated(false)
+        // Clean up authentication state
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        
+        // Reset user and authentication state
+        setUser(null);
+        setIsAuthenticated(false);
+        
+        console.log('User logged out successfully');
+    }
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-900">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+            </div>
+        )
     }
     
     return (
@@ -39,28 +54,44 @@ function App() {
             <div className="min-h-screen relative">
                 <AnimatedBackground />
                 <div className="relative z-10">
-                    <Navbar isAuthenticated={isAuthenticated} user={user} />
+                    <Navbar isAuthenticated={isAuthenticated} user={user} onLogout={handleLogout} />
                     <div className="pt-16"> {/* Add padding to account for fixed navbar */}
                         <Routes>
+                            {/* Public Routes */}
                             <Route path="/" element={<Home />} />
                             <Route 
                                 path="/login" 
-                                element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login />} 
+                                element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login setUser={setUser} setIsAuthenticated={setIsAuthenticated} />} 
                             />
                             <Route 
                                 path="/signup" 
-                                element={isAuthenticated ? <Navigate to="/dashboard" /> : <Signup />} 
+                                element={isAuthenticated ? <Navigate to="/dashboard" /> : <Signup setUser={setUser} setIsAuthenticated={setIsAuthenticated} />} 
                             />
+
+                            {/* Protected Routes */}
                             <Route 
                                 path="/dashboard" 
-                                element={isAuthenticated ? <DashBoard /> : <Navigate to="/login" />} 
+                                element={isAuthenticated ? <Dashboard user={user} /> : <Navigate to="/login" />} 
                             />
                             <Route 
                                 path="/profile" 
-                                element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} 
+                                element={isAuthenticated ? <UserProfile user={user} /> : <Navigate to="/login" />} 
                             />
-                            {/* <Route path="/settings" element={<Settings />} />
-                            <Route path="/logout" element={<Logout />} /> */}
+                            <Route 
+                                path="/symptoms" 
+                                element={isAuthenticated ? <SymptomAnalyser user={user} /> : <Navigate to="/login" />} 
+                            />
+                            <Route 
+                                path="/diet" 
+                                element={isAuthenticated ? <DietRecom user={user} /> : <Navigate to="/login" />} 
+                            />
+                            <Route 
+                                path="/reminders" 
+                                element={isAuthenticated ? <MedsReminder user={user} /> : <Navigate to="/login" />} 
+                            />
+
+                            {/* Catch all route */}
+                            <Route path="*" element={<Navigate to="/" />} />
                         </Routes>
                     </div>
                 </div>

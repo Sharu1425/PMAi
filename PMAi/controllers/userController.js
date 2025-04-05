@@ -4,67 +4,62 @@ import jwt from "jsonwebtoken";
 
 const loginUser = async (email, password) => {
     try {
-        console.log("Attempting to find user with email:", email)
+        // Validate inputs
+        if (!email || !password) {
+            return { 
+                status: 400, 
+                error: "Missing credentials", 
+                message: "Email and password are required" 
+            };
+        }
+
+        // Find user by email
         const user = await User.findOne({ email });
-        console.log("User lookup result:", user ? "User found" : "User not found")
         
+        // Check if user exists
         if (!user) {
-            console.log("User not found for email:", email)
             return { 
                 status: 401, 
-                error: "Invalid email or password",
-                message: "Please check your credentials and try again"
+                error: "Authentication failed", 
+                message: "Invalid email or password" 
             };
         }
         
-        console.log("User found, checking authentication method")
-        console.log("Stored password hash:", user.password ? "Exists" : "Does not exist")
-        console.log("User is Google user:", !!user.googleId)
-        
-        if (!user.password && user.googleId) {
-            console.log("User is Google-only, no password set")
+        // Check if it's a Google account without password
+        if (user.googleId && !user.password) {
             return {
                 status: 401,
                 error: "Google account",
-                message: "This account was created with Google. Please use Google login instead."
+                message: "Please use Google login for this account"
             };
         }
         
-        if (!user.password) {
-            console.log("No password set for user")
-            return {
-                status: 401,
-                error: "No password",
-                message: "No password set for this account. Please reset your password."
-            };
-        }
+        // Compare passwords using bcrypt
+        const passwordMatch = await bcrypt.compare(password, user.password);
         
-        console.log("Attempting password comparison")
-        const isMatch = await user.comparePassword(password);
-        console.log("Password verification result:", isMatch ? "Password matches" : "Password does not match")
-        
-        if (!isMatch) {
-            console.log("Password mismatch for user:", email)
+        if (!passwordMatch) {
             return { 
                 status: 401, 
-                error: "Invalid password",
-                message: "The password you entered is incorrect. Please try again."
+                error: "Authentication failed", 
+                message: "Invalid email or password" 
             };
         }
         
-        console.log("Password verified, generating token")
+        // Generate JWT token for authentication
         const token = jwt.sign(
             { id: user._id, email: user.email },
-            process.env.JWT_SECRET,
+            process.env.JWT_SECRET || "fallback_secret_key",
             { expiresIn: '24h' }
         );
         
-        // Update last login
-        await user.updateLastLogin();
+        // Update last login timestamp
+        user.lastLogin = Date.now();
+        await user.save();
         
+        // Return success with token and user data
         return { 
             status: 200, 
-            message: "Login Successful", 
+            message: "Login successful", 
             user: {
                 id: user._id,
                 username: user.username,
@@ -79,38 +74,46 @@ const loginUser = async (email, password) => {
         console.error("Login error:", error);
         return { 
             status: 500, 
-            error: "Error logging in",
-            message: "An unexpected error occurred. Please try again later."
+            error: "Server error", 
+            message: "An unexpected error occurred during login" 
         };
     }
 };
 
 const regUser = async (username, email, password) => {
     try {
+        // Check if user already exists
         const existingUser = await User.findOne({ email });
-        if (existingUser) return { status: 409, error: "User already exists" };
+        if (existingUser) {
+            return { 
+                status: 409, 
+                error: "User already exists",
+                message: "An account with this email already exists" 
+            };
+        }
 
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
+        // Create new user
         const newUser = new User({ 
             username, 
             email, 
-            password: hashedPassword,
+            password,
             isAdmin: false
         });
         
+        // Save user (password will be automatically hashed by the pre-save hook)
         await newUser.save();
 
+        // Generate token for automatic login after registration
         const token = jwt.sign(
             { id: newUser._id, email: newUser.email },
-            process.env.JWT_SECRET,
+            process.env.JWT_SECRET || "fallback_secret_key",
             { expiresIn: '24h' }
         );
 
+        // Return success with user data and token
         return { 
             status: 201, 
-            message: "User Registered Successfully",
+            message: "Registration successful",
             user: {
                 id: newUser._id,
                 username: newUser.username,
@@ -123,7 +126,11 @@ const regUser = async (username, email, password) => {
         };
     } catch (error) {
         console.error("Registration error:", error);
-        return { status: 500, error: "Error registering user" };
+        return { 
+            status: 500, 
+            error: "Registration failed",
+            message: "An unexpected error occurred during registration" 
+        };
     }
 };
 

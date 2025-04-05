@@ -1,117 +1,122 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import React, { useEffect, useRef } from 'react';
 
-const AnimatedBackground = () => {
-    const canvasRef = useRef(null)
+class DNAStrand {
+  constructor(canvas, x) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.x = x;
+    this.particles = [];
+    this.particleCount = 20;
+    this.initialize();
+  }
 
-    useEffect(() => {
-        const canvas = canvasRef.current
-        const ctx = canvas.getContext("2d")
-        let animationFrameId
+  initialize() {
+    for (let i = 0; i < this.particleCount; i++) {
+      this.particles.push({
+        y: (this.canvas.height / this.particleCount) * i,
+        speed: Math.random() * 2 + 1,
+        size: Math.random() * 3 + 2,
+        opacity: Math.random() * 0.5 + 0.2
+      });
+    }
+  }
 
-        // Set canvas size
-        const resizeCanvas = () => {
-            canvas.width = window.innerWidth
-            canvas.height = window.innerHeight
-        }
-        resizeCanvas()
-        window.addEventListener("resize", resizeCanvas)
+  update() {
+    this.particles.forEach(particle => {
+      particle.y += particle.speed;
+      if (particle.y > this.canvas.height) {
+        particle.y = 0;
+      }
+    });
+  }
 
-        // DNA strand class
-        class DNAStrand {
-            constructor(x, y, width, height) {
-                this.x = x
-                this.y = y
-                this.width = width
-                this.height = height
-                this.particles = []
-                this.angle = 0
-                this.speed = 0.01
-                this.particleCount = 20
-                this.initializeParticles()
-            }
+  draw() {
+    this.ctx.beginPath();
+    this.ctx.strokeStyle = `rgba(99, 102, 241, ${this.particles[0].opacity})`;
+    this.ctx.lineWidth = 1;
 
-            initializeParticles() {
-                for (let i = 0; i < this.particleCount; i++) {
-                    this.particles.push({
-                        x: this.x + (i / this.particleCount) * this.width,
-                        y: this.y + Math.sin(i * 0.5) * this.height,
-                        size: 2,
-                        color: 'rgba(99, 102, 241, 0.3)' // indigo-500 with low opacity
-                    })
-                }
-            }
+    this.particles.forEach((particle, i) => {
+      if (i === 0) {
+        this.ctx.moveTo(this.x, particle.y);
+      } else {
+        const prevParticle = this.particles[i - 1];
+        const cp1x = this.x + 50;
+        const cp1y = prevParticle.y;
+        const cp2x = this.x - 50;
+        const cp2y = particle.y;
+        this.ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, this.x, particle.y);
+      }
+    });
 
-            update() {
-                this.angle += this.speed
-                this.particles.forEach((particle, i) => {
-                    particle.y = this.y + Math.sin(i * 0.5 + this.angle) * this.height
-                })
-            }
+    this.ctx.stroke();
 
-            draw(ctx) {
-                ctx.beginPath()
-                ctx.moveTo(this.particles[0].x, this.particles[0].y)
-                
-                // Draw the DNA strand
-                for (let i = 1; i < this.particles.length; i++) {
-                    const particle = this.particles[i]
-                    ctx.lineTo(particle.x, particle.y)
-                }
-                
-                ctx.strokeStyle = 'rgba(99, 102, 241, 0.2)' // indigo-500 with low opacity
-                ctx.lineWidth = 1
-                ctx.stroke()
-
-                // Draw particles
-                this.particles.forEach(particle => {
-                    ctx.beginPath()
-                    ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
-                    ctx.fillStyle = particle.color
-                    ctx.fill()
-                })
-            }
-        }
-
-        // Create DNA strands
-        const strands = [
-            new DNAStrand(canvas.width * 0.2, canvas.height * 0.5, 100, 100),
-            new DNAStrand(canvas.width * 0.8, canvas.height * 0.5, 100, 100),
-            new DNAStrand(canvas.width * 0.5, canvas.height * 0.3, 100, 100)
-        ]
-
-        // Animation loop
-        const animate = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height)
-            
-            // Draw background gradient
-            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height)
-            gradient.addColorStop(0, 'rgba(15, 23, 42, 0.95)') // slate-900
-            gradient.addColorStop(1, 'rgba(30, 41, 59, 0.95)') // slate-800
-            ctx.fillStyle = gradient
-            ctx.fillRect(0, 0, canvas.width, canvas.height)
-
-            // Draw DNA strands
-            strands.forEach(strand => {
-                strand.update()
-                strand.draw(ctx)
-            })
-
-            animationFrameId = requestAnimationFrame(animate)
-        }
-
-        animate()
-
-        // Cleanup
-        return () => {
-            window.removeEventListener("resize", resizeCanvas)
-            cancelAnimationFrame(animationFrameId)
-        }
-    }, [])
-
-    return <canvas ref={canvasRef} className="fixed top-0 left-0 w-full h-full -z-10" />
+    this.particles.forEach(particle => {
+      this.ctx.beginPath();
+      this.ctx.arc(this.x, particle.y, particle.size, 0, Math.PI * 2);
+      this.ctx.fillStyle = `rgba(99, 102, 241, ${particle.opacity})`;
+      this.ctx.fill();
+    });
+  }
 }
 
-export default AnimatedBackground
+const AnimatedBackground = () => {
+  const canvasRef = useRef(null);
+  const strands = useRef([]);
+  const animationFrameId = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+
+    const initializeStrands = () => {
+      strands.current = [];
+      const strandCount = Math.floor(canvas.width / 200);
+      for (let i = 0; i < strandCount; i++) {
+        strands.current.push(new DNAStrand(canvas, (i + 1) * (canvas.width / (strandCount + 1))));
+      }
+    };
+
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      strands.current.forEach(strand => {
+        strand.update();
+        strand.draw();
+      });
+      animationFrameId.current = requestAnimationFrame(animate);
+    };
+
+    resizeCanvas();
+    initializeStrands();
+    animate();
+
+    window.addEventListener('resize', () => {
+      resizeCanvas();
+      initializeStrands();
+    });
+
+    return () => {
+      window.removeEventListener('resize', resizeCanvas);
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
+      }
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="fixed top-0 left-0 w-full h-full -z-10"
+      style={{ background: 'linear-gradient(to bottom right, #1a1a1a, #2d2d2d)' }}
+    />
+  );
+};
+
+export default AnimatedBackground;
 

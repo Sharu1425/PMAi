@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { 
+    Outlet,
+    Route, 
+    Navigate,
+    createRoutesFromElements,
+    createBrowserRouter,
+    RouterProvider 
+} from 'react-router-dom'
 import './App.css'
 import Home from './pages/Home'
 import Login from './pages/Login'
@@ -14,6 +21,27 @@ import MedsReminder from './pages/MedsReminder'
 import { Toaster } from 'react-hot-toast'
 //import Settings from './pages/Settings'
 //import Logout from './pages/Logout'
+
+// Layout Component
+const RootLayout = ({ isAuthenticated, user, onLogout }) => (
+    <div className="min-h-screen relative">
+        <AnimatedBackground />
+        <div className="relative z-10">
+            <Navbar isAuthenticated={isAuthenticated} user={user} onLogout={onLogout} />
+            <main className="pt-16">
+                <Outlet />
+            </main>
+        </div>
+    </div>
+);
+
+// Protected Route Component
+const ProtectedRoute = ({ isAuthenticated, children }) => {
+    if (!isAuthenticated) {
+        return <Navigate to="/login" replace />;
+    }
+    return children;
+};
 
 function App() {
     const [user, setUser] = useState(null)
@@ -50,82 +78,84 @@ function App() {
         )
     }
     
-    return (
-        <Router>
-            <div className="min-h-screen relative">
-                <AnimatedBackground />
-                <div className="relative z-10">
-                    <Navbar isAuthenticated={isAuthenticated} user={user} onLogout={handleLogout} />
-                    <div className="pt-16"> {/* Add padding to account for fixed navbar */}
-                        <Routes>
-                            {/* Public Routes */}
-                            <Route path="/" element={<Home />} />
-                            <Route 
-                                path="/login" 
-                                element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login setUser={setUser} setIsAuthenticated={setIsAuthenticated} />} 
-                            />
-                            <Route 
-                                path="/signup" 
-                                element={isAuthenticated ? <Navigate to="/dashboard" /> : <Signup setUser={setUser} setIsAuthenticated={setIsAuthenticated} />} 
-                            />
-
-                            {/* Protected Routes */}
-                            <Route 
-                                path="/dashboard" 
-                                element={isAuthenticated ? <Dashboard user={user} /> : <Navigate to="/login" />} 
-                            />
-                            <Route 
-                                path="/profile" 
-                                element={isAuthenticated ? <UserProfile user={user} /> : <Navigate to="/login" />} 
-                            />
-                            <Route 
-                                path="/userprofile" 
-                                element={isAuthenticated ? <UserProfile user={user} /> : <Navigate to="/login" />} 
-                            />
-                            <Route 
-                                path="/symptoms" 
-                                element={isAuthenticated ? <SymptomAnalyser user={user} /> : <Navigate to="/login" />} 
-                            />
-                            <Route 
-                                path="/diet" 
-                                element={isAuthenticated ? <DietRecom user={user} /> : <Navigate to="/login" />} 
-                            />
-                            <Route 
-                                path="/reminders" 
-                                element={isAuthenticated ? <MedsReminder user={user} /> : <Navigate to="/login" />} 
-                            />
-
-                            {/* Catch all route */}
-                            <Route path="*" element={<Navigate to="/" />} />
-                        </Routes>
-                    </div>
-                </div>
-                
-                {/* Toast notifications */}
-                <Toaster 
-                    position="top-right"
-                    toastOptions={{
-                        duration: 3000,
-                        style: {
-                            background: '#333',
-                            color: '#fff',
-                        },
-                        success: {
-                            iconTheme: {
-                                primary: '#4caf50',
-                                secondary: '#fff',
-                            },
-                        },
-                        error: {
-                            iconTheme: {
-                                primary: '#f44336',
-                                secondary: '#fff',
-                            },
-                        },
-                    }}
+    const router = createBrowserRouter(
+        createRoutesFromElements(
+            <Route element={<RootLayout isAuthenticated={isAuthenticated} user={user} onLogout={handleLogout} />}>
+                {/* Public Routes */}
+                <Route path="/" element={<Home />} />
+                <Route 
+                    path="/login" 
+                    element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login setUser={setUser} setIsAuthenticated={setIsAuthenticated} />} 
                 />
-            </div>
-        </Router>
+                <Route 
+                    path="/signup" 
+                    element={isAuthenticated ? <Navigate to="/dashboard" /> : <Signup setUser={setUser} setIsAuthenticated={setIsAuthenticated} />} 
+                />
+
+                {/* Protected Routes */}
+                <Route 
+                    path="/dashboard" 
+                    element={<ProtectedRoute isAuthenticated={isAuthenticated}><Dashboard user={user} /></ProtectedRoute>} 
+                />
+                <Route 
+                    path="/profile" 
+                    element={<ProtectedRoute isAuthenticated={isAuthenticated}><UserProfile user={user} /></ProtectedRoute>} 
+                />
+                <Route 
+                    path="/userprofile" 
+                    element={<ProtectedRoute isAuthenticated={isAuthenticated}><UserProfile user={user} /></ProtectedRoute>} 
+                />
+                <Route 
+                    path="/symptoms" 
+                    element={<ProtectedRoute isAuthenticated={isAuthenticated}><SymptomAnalyser user={user} /></ProtectedRoute>} 
+                />
+                <Route 
+                    path="/diet" 
+                    element={<ProtectedRoute isAuthenticated={isAuthenticated}><DietRecom user={user} /></ProtectedRoute>} 
+                />
+                <Route 
+                    path="/reminders" 
+                    element={<ProtectedRoute isAuthenticated={isAuthenticated}><MedsReminder user={user} /></ProtectedRoute>} 
+                />
+
+                {/* Catch all route */}
+                <Route path="*" element={<Navigate to="/" />} />
+            </Route>
+        ),
+        {
+            future: {
+                v7_startTransition: true,
+                v7_relativeSplatPath: true
+            }
+        }
+    );
+    
+    return (
+        <>
+            <RouterProvider router={router} />
+            <Toaster 
+                position="top-right"
+                toastOptions={{
+                    duration: 3000,
+                    style: {
+                        background: '#333',
+                        color: '#fff',
+                    },
+                    success: {
+                        iconTheme: {
+                            primary: '#4caf50',
+                            secondary: '#fff',
+                        },
+                    },
+                    error: {
+                        iconTheme: {
+                            primary: '#f44336',
+                            secondary: '#fff',
+                        },
+                    },
+                }}
+            />
+        </>
     )
 }
 

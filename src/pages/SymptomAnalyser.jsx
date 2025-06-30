@@ -44,7 +44,7 @@ function SymptomAnalyser({ user }) {
 
     try {
       // Call the symptom analysis API through our proxy endpoint
-      const response = await axios.post("http://localhost:5001/api/symptom-analysis", {
+      const response = await axios.post("http://localhost:5001/api/analyze-symptoms", {
         message: userInput,
         conversationHistory: messages.map(msg => ({
           from: msg.from, 

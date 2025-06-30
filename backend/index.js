@@ -1,10 +1,9 @@
-
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import session from 'express-session';
 import passport from 'passport';
-import './passportConfig.js'; // Import passport config to register strategies
+import './config/passportConfig.js';
 import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
@@ -31,8 +30,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Serve static files from the public directory
-app.use(express.static('public'));
-console.log('Serving static files from:', process.cwd() + '/public');
+app.use(express.static('../public'));
+console.log('Serving static files from:', process.cwd() + '/../public');
 
 // Session configuration
 app.use(session({
@@ -60,6 +59,24 @@ app.use('/api', aiRoutes);
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).json({ message: 'Something went wrong!' });
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        timestamp: new Date(),
+        uptime: process.uptime()
+    });
+});
+
+// Global error handlers
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
 });
 
 // Connect to MongoDB

@@ -426,26 +426,32 @@ function UserProfile() {
         ) : (
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-gray-700/30 rounded-xl p-4">
+              <div className="bg-gray-700/30 rounded-xl p-4 text-left">
                 <h3 className="text-lg font-semibold text-white mb-2">Personal</h3>
-                <p className="text-gray-300"><span className="text-gray-500">Age:</span> {userData.age} years</p>
-                <p className="text-gray-300"><span className="text-gray-500">Gender:</span> {userData.gender}</p>
-                <p className="text-gray-300"><span className="text-gray-500">Weight:</span> {userData.weight} kg</p>
-                <p className="text-gray-300"><span className="text-gray-500">Height:</span> {userData.height} cm</p>
-                <p className="text-gray-300"><span className="text-gray-500">Blood Type:</span> {userData.bloodType}</p>
+                <div className="space-y-1">
+                  <p className="text-gray-300 flex justify-between"><span className="text-gray-500">Age:</span> {userData.age} years</p>
+                  <p className="text-gray-300 flex justify-between"><span className="text-gray-500">Gender:</span> {userData.gender}</p>
+                  <p className="text-gray-300 flex justify-between"><span className="text-gray-500">Weight:</span> {userData.weight} kg</p>
+                  <p className="text-gray-300 flex justify-between"><span className="text-gray-500">Height:</span> {userData.height} cm</p>
+                  <p className="text-gray-300 flex justify-between"><span className="text-gray-500">Blood Type:</span> {userData.bloodType}</p>
+                </div>
               </div>
               
-              <div className="bg-gray-700/30 rounded-xl p-4">
+              <div className="bg-gray-700/30 rounded-xl p-4 text-left">
                 <h3 className="text-lg font-semibold text-white mb-2">Health Information</h3>
-                <p className="text-gray-300"><span className="text-gray-500">Allergies:</span> {userData.allergies || "None"}</p>
-                <p className="text-gray-300"><span className="text-gray-500">Medical Conditions:</span> {userData.medicalConditions || "None"}</p>
-                <p className="text-gray-300"><span className="text-gray-500">Dietary Restrictions:</span> {userData.dietaryRestrictions || "None"}</p>
+                <div className="space-y-1">
+                  <p className="text-gray-300 flex justify-between"><span className="text-gray-500">Allergies:</span> {userData.allergies || "None"}</p>
+                  <p className="text-gray-300 flex justify-between"><span className="text-gray-500">Medical Conditions:</span> {userData.medicalConditions || "None"}</p>
+                  <p className="text-gray-300 flex justify-between"><span className="text-gray-500">Dietary Restrictions:</span> {userData.dietaryRestrictions || "None"}</p>
+                </div>
               </div>
               
-              <div className="bg-gray-700/30 rounded-xl p-4">
+              <div className="bg-gray-700/30 rounded-xl p-4 text-left">
                 <h3 className="text-lg font-semibold text-white mb-2">Fitness</h3>
-                <p className="text-gray-300"><span className="text-gray-500">Weight Goals:</span> {userData.weightGoals || "Not specified"}</p>
-                <p className="text-gray-300"><span className="text-gray-500">Activity Level:</span> {userData.activityLevel || "Not specified"}</p>
+                <div className="space-y-1">
+                  <p className="text-gray-300 flex justify-between"><span className="text-gray-500">Weight Goals:</span> {userData.weightGoals || "Not specified"}</p>
+                  <p className="text-gray-300 flex justify-between"><span className="text-gray-500">Activity Level:</span> {userData.activityLevel || "Not specified"}</p>
+                </div>
               </div>
             </div>
             

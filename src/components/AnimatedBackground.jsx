@@ -2,187 +2,134 @@
 
 import React, { useEffect, useRef } from 'react';
 
-class DNAStrand {
-  constructor(canvas, x, color1, color2) {
+class MedicalParticle {
+  constructor(canvas, x, y) {
     this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
     this.x = x;
-    this.baseX = x;
-    this.offset = Math.random() * 1000; // Random starting point for the wave
-    this.speed = 0.5 + Math.random() * 0.5;
-    this.amplitude = 70 + Math.random() * 30; // How wide the helix is
-    this.segmentCount = 15 + Math.floor(Math.random() * 10);
-    this.segmentSpacing = canvas.height / this.segmentCount;
-    this.color1 = color1;
-    this.color2 = color2;
-    this.thickness = 2 + Math.random() * 2;
-    this.direction = Math.random() > 0.5 ? 1 : -1; // Direction of movement
-    this.nucleobases = [];
-    this.crossConnections = [];
-    this.initialize();
+    this.y = y;
+    this.size = Math.random() * 3 + 1;
+    this.baseSize = this.size;
+    this.speedX = (Math.random() - 0.5) * 1.5;
+    this.speedY = (Math.random() - 0.5) * 1.5;
+    this.opacity = 0.4 + Math.random() * 0.4;
+    this.type = Math.floor(Math.random() * 4); // 0: circle, 1: cross, 2: heart, 3: pulse
+    this.color = this.generateColor();
+    this.angle = 0;
+    this.pulseOffset = Math.random() * Math.PI * 2;
+    this.lastPulseTime = Date.now();
+    this.pulseInterval = 1000 + Math.random() * 500; // Random pulse interval
   }
 
-  initialize() {
-    // Create nucleobases (dots) along the DNA strands
-    for (let i = 0; i < this.segmentCount; i++) {
-      const y = i * this.segmentSpacing;
-      
-      // First strand base
-      this.nucleobases.push({
-        strand: 1,
-        y: y,
-        size: 3 + Math.random() * 2,
-        originalSize: 3 + Math.random() * 2,
-        opacity: 0.6 + Math.random() * 0.4,
-        hue: Math.random() > 0.5 ? 10 : 190, // Randomly choose between red-ish and blue-ish
-        type: Math.floor(Math.random() * 4) // DNA base type (A, T, G, C)
-      });
-      
-      // Second strand base (complementary)
-      this.nucleobases.push({
-        strand: 2,
-        y: y,
-        size: 3 + Math.random() * 2,
-        originalSize: 3 + Math.random() * 2,
-        opacity: 0.6 + Math.random() * 0.4,
-        hue: Math.random() > 0.5 ? 130 : 280, // Randomly choose between green-ish and purple-ish
-        type: 3 - Math.floor(Math.random() * 4) // Complementary base
-      });
-      
-      // Create cross connections between bases (if not at the end)
-      if (i > 0 && i < this.segmentCount - 1 && Math.random() > 0.3) {
-        this.crossConnections.push({
-          y: y,
-          opacity: 0.3 + Math.random() * 0.3,
-          width: 1 + Math.random()
-        });
-      }
-    }
+  generateColor() {
+    const colors = [
+      '59, 130, 246',   // Blue
+      '236, 72, 153',   // Pink
+      '16, 185, 129',   // Emerald
+      '99, 102, 241',   // Indigo
+      '239, 68, 68',    // Red
+      '168, 85, 247'    // Purple
+    ];
+    return colors[Math.floor(Math.random() * colors.length)];
   }
 
   update(time) {
-    // Make strand wave and move slightly
-    this.offset += this.speed * 0.01 * this.direction;
-    this.x = this.baseX + Math.sin(time * 0.001 + this.offset) * 20;
-    
-    // Animate nucleobases
-    this.nucleobases.forEach(base => {
-      // Pulse the size of nucleobases
-      const pulseFactor = Math.sin(time * 0.002 + base.y * 0.1) * 0.2 + 0.8;
-      base.size = base.originalSize * pulseFactor;
-      
-      // Slight vertical movement to add more life
-      base.y += Math.sin(time * 0.001 + base.y * 0.05) * 0.2;
-      
-      // Reset if moved out of bounds
-      if (base.y > this.canvas.height) {
-        base.y = 0;
-      } else if (base.y < 0) {
-        base.y = this.canvas.height;
-      }
-    });
+    this.x += this.speedX;
+    this.y += this.speedY;
+    this.angle += 0.02;
+
+    // Boundary check with smooth transition
+    if (this.x < 0 || this.x > this.canvas.width) {
+      this.speedX *= -1;
+    }
+    if (this.y < 0 || this.y > this.canvas.height) {
+      this.speedY *= -1;
+    }
+
+    // Pulse size effect
+    const now = Date.now();
+    if (now - this.lastPulseTime > this.pulseInterval) {
+      this.lastPulseTime = now;
+    }
+    const timeSinceLastPulse = now - this.lastPulseTime;
+    const pulseFactor = Math.sin(timeSinceLastPulse / this.pulseInterval * Math.PI);
+    this.size = this.baseSize * (1 + pulseFactor * 0.3);
   }
 
-  draw(time) {
-    const ctx = this.ctx;
-    
-    // Draw the two helical strands
-    for (let strand = 1; strand <= 2; strand++) {
-      ctx.beginPath();
-      
-      const points = [];
-      for (let i = 0; i < this.segmentCount; i++) {
-        const y = i * this.segmentSpacing;
-        const wavePos = (time * 0.002 + i * 0.2 + this.offset);
-        const xOffset = Math.sin(wavePos) * this.amplitude;
-        const x = strand === 1 ? this.x + xOffset : this.x - xOffset;
-        points.push({ x, y });
-      }
-      
-      // Create a smooth curve through the points
-      ctx.moveTo(points[0].x, points[0].y);
-      for (let i = 0; i < points.length - 1; i++) {
-        const xc = (points[i].x + points[i + 1].x) / 2;
-        const yc = (points[i].y + points[i + 1].y) / 2;
-        ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
-      }
-      
-      // Set strand styles
-      const gradient = ctx.createLinearGradient(
-        this.x - this.amplitude, 0, 
-        this.x + this.amplitude, this.canvas.height
-      );
-      
-      if (strand === 1) {
-        gradient.addColorStop(0, `rgba(${this.color1}, 0.7)`);
-        gradient.addColorStop(1, `rgba(${this.color2}, 0.7)`);
-      } else {
-        gradient.addColorStop(0, `rgba(${this.color2}, 0.7)`);
-        gradient.addColorStop(1, `rgba(${this.color1}, 0.7)`);
-      }
-      
-      ctx.strokeStyle = gradient;
-      ctx.lineWidth = this.thickness;
-      ctx.stroke();
+  draw(ctx, time) {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.angle);
+    ctx.globalAlpha = this.opacity;
+
+    switch(this.type) {
+      case 0: // Circle (representing cells/molecules)
+        ctx.beginPath();
+        ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${this.color}, ${this.opacity})`;
+        ctx.fill();
+        break;
+
+      case 1: // Medical Cross
+        ctx.beginPath();
+        const crossSize = this.size * 2;
+        ctx.fillStyle = `rgba(${this.color}, ${this.opacity})`;
+        // Vertical bar
+        ctx.fillRect(-crossSize/6, -crossSize, crossSize/3, crossSize * 2);
+        // Horizontal bar
+        ctx.fillRect(-crossSize, -crossSize/6, crossSize * 2, crossSize/3);
+        break;
+
+      case 2: // Heart
+        const heartSize = this.size * 1.5;
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(${this.color}, ${this.opacity})`;
+        ctx.moveTo(0, heartSize);
+        // Left curve
+        ctx.bezierCurveTo(
+          -heartSize, 0,
+          -heartSize, -heartSize,
+          0, -heartSize
+        );
+        // Right curve
+        ctx.bezierCurveTo(
+          heartSize, -heartSize,
+          heartSize, 0,
+          0, heartSize
+        );
+        ctx.fill();
+        break;
+
+      case 3: // Pulse wave
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(${this.color}, ${this.opacity})`;
+        ctx.lineWidth = this.size / 2;
+        
+        // Draw ECG-like pulse
+        ctx.moveTo(-this.size * 4, 0);
+        ctx.lineTo(-this.size * 2, 0);
+        ctx.lineTo(-this.size, -this.size * 2);
+        ctx.lineTo(0, this.size * 3);
+        ctx.lineTo(this.size, -this.size * 2);
+        ctx.lineTo(this.size * 2, 0);
+        ctx.lineTo(this.size * 4, 0);
+        
+        ctx.stroke();
+        break;
     }
     
-    // Draw cross connections (hydrogen bonds)
-    this.crossConnections.forEach(conn => {
-      const wavePos = time * 0.002 + conn.y * 0.1 + this.offset;
-      const x1 = this.x + Math.sin(wavePos) * this.amplitude;
-      const x2 = this.x - Math.sin(wavePos) * this.amplitude;
-      
-      ctx.beginPath();
-      ctx.moveTo(x1, conn.y);
-      ctx.lineTo(x2, conn.y);
-      ctx.strokeStyle = `rgba(255, 255, 255, ${conn.opacity})`;
-      ctx.lineWidth = conn.width;
-      ctx.stroke();
-    });
-    
-    // Draw nucleobases (the colored dots)
-    this.nucleobases.forEach(base => {
-      // Position the base on the right strand
-      const wavePos = time * 0.002 + base.y * 0.1 + this.offset;
-      const xOffset = Math.sin(wavePos) * this.amplitude;
-      const x = base.strand === 1 ? this.x + xOffset : this.x - xOffset;
-      
-      // Draw the base
-      ctx.beginPath();
-      ctx.arc(x, base.y, base.size, 0, Math.PI * 2);
-      
-      // Color based on type (A, T, G, C)
-      let baseColor;
-      switch(base.type) {
-        case 0: baseColor = `hsla(${10 + time * 0.01 % 20}, 100%, 70%, ${base.opacity})`; break; // Adenine (red)
-        case 1: baseColor = `hsla(${200 + time * 0.01 % 20}, 100%, 70%, ${base.opacity})`; break; // Thymine (blue)
-        case 2: baseColor = `hsla(${130 + time * 0.01 % 20}, 100%, 70%, ${base.opacity})`; break; // Guanine (green)
-        case 3: baseColor = `hsla(${280 + time * 0.01 % 20}, 100%, 70%, ${base.opacity})`; break; // Cytosine (purple)
-      }
-      
-      ctx.fillStyle = baseColor;
-      ctx.fill();
-    });
+    ctx.restore();
   }
 }
 
 const AnimatedBackground = () => {
   const canvasRef = useRef(null);
-  const strands = useRef([]);
+  const particles = useRef([]);
   const animationFrameId = useRef(null);
-  const startTime = useRef(Date.now());
+  const mousePosition = useRef({ x: null, y: null });
 
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-
-    // Define color palettes for DNA strands
-    const colorPalettes = [
-      ["59, 130, 246", "99, 102, 241"], // Blue - Indigo 
-      ["139, 92, 246", "219, 39, 119"], // Purple - Pink
-      ["6, 182, 212", "16, 185, 129"],  // Cyan - Emerald
-      ["99, 102, 241", "236, 72, 153"]  // Indigo - Pink
-    ];
 
     const resizeCanvas = () => {
       const dpr = window.devicePixelRatio || 1;
@@ -193,52 +140,116 @@ const AnimatedBackground = () => {
       canvas.style.height = `${window.innerHeight}px`;
     };
 
-    const initializeStrands = () => {
-      strands.current = [];
-      // Create fewer, but more detailed strands
-      const strandCount = Math.max(3, Math.floor(window.innerWidth / 350));
+    const initializeParticles = () => {
+      particles.current = [];
+      const particleCount = Math.min(80, Math.floor((window.innerWidth * window.innerHeight) / 15000));
       
-      for (let i = 0; i < strandCount; i++) {
-        const palette = colorPalettes[Math.floor(Math.random() * colorPalettes.length)];
-        const x = (i + 0.5) * (window.innerWidth / strandCount);
-        strands.current.push(new DNAStrand(canvas, x, palette[0], palette[1]));
+      for (let i = 0; i < particleCount; i++) {
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * canvas.height;
+        particles.current.push(new MedicalParticle(canvas, x, y));
       }
     };
 
-    const animate = () => {
-      const currentTime = Date.now() - startTime.current;
-      
-      // Partially clear the canvas with a semi-transparent black rectangle for trail effect
-      ctx.fillStyle = 'rgba(17, 24, 39, 0.1)'; // Dark background with opacity for trails
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // Draw gradient background
-      const bgGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-      bgGradient.addColorStop(0, 'rgba(17, 24, 39, 0.01)');   // Gray-900
-      bgGradient.addColorStop(0.5, 'rgba(31, 41, 55, 0.01)'); // Gray-800
-      bgGradient.addColorStop(1, 'rgba(17, 24, 39, 0.01)');   // Gray-900
-      ctx.fillStyle = bgGradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // Update and draw strands
-      strands.current.forEach(strand => {
-        strand.update(currentTime);
-        strand.draw(currentTime);
+    const drawConnections = (time) => {
+      particles.current.forEach((particle, index) => {
+        for (let j = index + 1; j < particles.current.length; j++) {
+          const dx = particles.current[j].x - particle.x;
+          const dy = particles.current[j].y - particle.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          const maxDistance = 150;
+
+          if (distance < maxDistance) {
+            ctx.beginPath();
+            ctx.moveTo(particle.x, particle.y);
+            ctx.lineTo(particles.current[j].x, particles.current[j].y);
+            
+            // Pulse effect along the connection lines
+            const pulseTime = time * 0.001;
+            const pulseIntensity = (Math.sin(pulseTime + distance * 0.05) + 1) * 0.5;
+            const opacity = (1 - distance / maxDistance) * 0.3 * pulseIntensity;
+            
+            ctx.strokeStyle = `rgba(${particle.color}, ${opacity})`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
+
+        // Connect to mouse with medical-themed interaction
+        if (mousePosition.current.x !== null && mousePosition.current.y !== null) {
+          const dx = mousePosition.current.x - particle.x;
+          const dy = mousePosition.current.y - particle.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          const maxDistance = 200;
+
+          if (distance < maxDistance) {
+            ctx.beginPath();
+            ctx.moveTo(particle.x, particle.y);
+            ctx.lineTo(mousePosition.current.x, mousePosition.current.y);
+            
+            const pulseTime = time * 0.001;
+            const pulseIntensity = (Math.sin(pulseTime + distance * 0.05) + 1) * 0.5;
+            const opacity = (1 - distance / maxDistance) * 0.5 * pulseIntensity;
+            
+            ctx.strokeStyle = `rgba(${particle.color}, ${opacity})`;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          }
+        }
       });
+    };
+
+    const animate = (time) => {
+      // Create a gradient background
+      const gradient = ctx.createRadialGradient(
+        canvas.width / 2, canvas.height / 2, 0,
+        canvas.width / 2, canvas.height / 2, canvas.width / 2
+      );
+      gradient.addColorStop(0, 'rgba(17, 24, 39, 0.95)');
+      gradient.addColorStop(1, 'rgba(10, 15, 25, 0.98)');
       
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Update and draw particles
+      particles.current.forEach(particle => {
+        particle.update(time);
+        particle.draw(ctx, time);
+      });
+
+      // Draw connections with pulse effect
+      drawConnections(time);
+
       animationFrameId.current = requestAnimationFrame(animate);
     };
 
-    resizeCanvas();
-    initializeStrands();
-    animate();
+    const handleMouseMove = (event) => {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      mousePosition.current = {
+        x: (event.clientX - rect.left) * dpr,
+        y: (event.clientY - rect.top) * dpr
+      };
+    };
 
+    const handleMouseLeave = () => {
+      mousePosition.current = { x: null, y: null };
+    };
+
+    resizeCanvas();
+    initializeParticles();
+    animate(0);
+
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mouseleave', handleMouseLeave);
     window.addEventListener('resize', () => {
       resizeCanvas();
-      initializeStrands();
+      initializeParticles();
     });
 
     return () => {
+      canvas.removeEventListener('mousemove', handleMouseMove);
+      canvas.removeEventListener('mouseleave', handleMouseLeave);
       window.removeEventListener('resize', resizeCanvas);
       if (animationFrameId.current) {
         cancelAnimationFrame(animationFrameId.current);
@@ -249,9 +260,14 @@ const AnimatedBackground = () => {
   return (
     <canvas
       ref={canvasRef}
-      className="fixed top-0 left-0 w-full h-full -z-10"
-      style={{ 
-        background: 'linear-gradient(to bottom right, #111827, #1e3a8a)' // Dark blue gradient
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        zIndex: -1,
+        background: '#111827'
       }}
     />
   );

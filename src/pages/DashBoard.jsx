@@ -57,10 +57,8 @@ function Dashboard() {
       <Navbar isAuthenticated={true} user={user} />
       <div className="p-6 max-w-6xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-4xl font-extrabold text-white tracking-tight">Personalized Healthcare</h1>
-          <p className="text-gray-300 mt-2 text-lg">
-            Welcome back, {user?.name || user?.username || user?.firstName || "User"}
-          </p>
+          <h1 className="text-4xl font-extrabold text-white tracking-tight drop-shadow-lg">Personalized Healthcare</h1>
+          <p className="mt-2 text-2xl font-bold text-indigo-200 drop-shadow-lg" style={{textShadow: '0 2px 8px #0008'}}>Welcome back, {user?.name || user?.username || user?.firstName || "User"}</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 gap-6">

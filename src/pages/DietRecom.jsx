@@ -338,7 +338,7 @@ function DietRecom() {
         animate={{ opacity: 1, y: 0 }}
         className="bg-gray-800/60 rounded-xl p-4 mb-6 shadow-lg"
       >
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+        <h3 className="text-lg font-semibold text-white drop-shadow mb-4 flex items-center">
           <FaUtensils className="mr-2 text-indigo-400" /> Personalized Meal Plan
         </h3>
         
@@ -346,7 +346,7 @@ function DietRecom() {
           {/* Breakfast Section */}
           {mealPlan.breakfast.length > 0 && (
             <div className="bg-gray-700/40 rounded-xl p-3 backdrop-blur-sm">
-              <h4 className="text-sm font-semibold text-yellow-300 mb-2 flex items-center">
+              <h4 className="text-sm font-semibold text-yellow-300 mb-2 flex items-center drop-shadow">
                 <FaSun className="mr-2" /> Breakfast
               </h4>
               <ul className="space-y-1">
@@ -363,7 +363,7 @@ function DietRecom() {
           {/* Lunch Section */}
           {mealPlan.lunch.length > 0 && (
             <div className="bg-gray-700/40 rounded-xl p-3 backdrop-blur-sm">
-              <h4 className="text-sm font-semibold text-orange-300 mb-2 flex items-center">
+              <h4 className="text-sm font-semibold text-orange-300 mb-2 flex items-center drop-shadow">
                 <FaUtensils className="mr-2" /> Lunch
               </h4>
               <ul className="space-y-1">
@@ -380,7 +380,7 @@ function DietRecom() {
           {/* Dinner Section */}
           {mealPlan.dinner.length > 0 && (
             <div className="bg-gray-700/40 rounded-xl p-3 backdrop-blur-sm">
-              <h4 className="text-sm font-semibold text-blue-300 mb-2 flex items-center">
+              <h4 className="text-sm font-semibold text-blue-300 mb-2 flex items-center drop-shadow">
                 <FaMoon className="mr-2" /> Dinner
               </h4>
               <ul className="space-y-1">
@@ -397,7 +397,7 @@ function DietRecom() {
           {/* Snacks Section */}
           {mealPlan.snacks.length > 0 && (
             <div className="bg-gray-700/40 rounded-xl p-3 backdrop-blur-sm">
-              <h4 className="text-sm font-semibold text-purple-300 mb-2 flex items-center">
+              <h4 className="text-sm font-semibold text-purple-300 mb-2 flex items-center drop-shadow">
                 <FaCookie className="mr-2" /> Snacks
               </h4>
               <ul className="space-y-1">
@@ -431,7 +431,7 @@ function DietRecom() {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 py-10 px-4">
       <div className="max-w-4xl mx-auto">
         <div className="bg-gray-800/50 backdrop-blur-lg rounded-3xl shadow-2xl border border-gray-700/30 p-6">
-          <h1 className="text-3xl font-bold text-white mb-6 text-center">
+          <h1 className="text-3xl font-bold text-white mb-6 text-center drop-shadow-lg">
             Personalized Diet Plan
           </h1>
 

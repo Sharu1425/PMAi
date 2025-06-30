@@ -12,13 +12,13 @@ function Home() {
             {/* Hero Section */}
             <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
                 <div className="text-center">
-                    <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
+                    <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 drop-shadow-lg">
                         Your Personal Health
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-400">
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-400 drop-shadow-lg">
                             {" "}Companion
                         </span>
                     </h1>
-                    <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
+                    <p className="text-xl text-gray-100 mb-8 max-w-3xl mx-auto drop-shadow">
                         PMAi helps you track your health, manage medications, and get personalized diet recommendations - all in one place.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -41,7 +41,7 @@ function Home() {
             {/* Features Section */}
             <div className="relative z-10 bg-gray-800/50 backdrop-blur-lg py-16">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <h2 className="text-3xl font-bold text-white text-center mb-12">
+                    <h2 className="text-3xl font-bold text-white text-center mb-12 drop-shadow-lg">
                         Key Features
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -50,7 +50,7 @@ function Home() {
                             <div className="w-12 h-12 bg-indigo-500 rounded-xl flex items-center justify-center mb-4">
                                 <FaBrain className="w-6 h-6 text-white" />
                             </div>
-                            <h3 className="text-xl font-semibold text-white mb-2">Symptom Analysis</h3>
+                            <h3 className="text-xl font-semibold text-white mb-2 drop-shadow">Symptom Analysis</h3>
                             <p className="text-gray-300">
                                 Get instant analysis of your symptoms and receive personalized health recommendations.
                             </p>
@@ -61,7 +61,7 @@ function Home() {
                             <div className="w-12 h-12 bg-indigo-500 rounded-xl flex items-center justify-center mb-4">
                                 <FaChartLine className="w-6 h-6 text-white" />
                             </div>
-                            <h3 className="text-xl font-semibold text-white mb-2">Health Tracking</h3>
+                            <h3 className="text-xl font-semibold text-white mb-2 drop-shadow">Health Tracking</h3>
                             <p className="text-gray-300">
                                 Monitor your health metrics and track your progress over time.
                             </p>
@@ -72,7 +72,7 @@ function Home() {
                             <div className="w-12 h-12 bg-indigo-500 rounded-xl flex items-center justify-center mb-4">
                                 <FaHeartbeat className="w-6 h-6 text-white" />
                             </div>
-                            <h3 className="text-xl font-semibold text-white mb-2">Diet Planning</h3>
+                            <h3 className="text-xl font-semibold text-white mb-2 drop-shadow">Diet Planning</h3>
                             <p className="text-gray-300">
                                 Receive personalized diet recommendations based on your health goals.
                             </p>
@@ -83,7 +83,7 @@ function Home() {
                             <div className="w-12 h-12 bg-indigo-500 rounded-xl flex items-center justify-center mb-4">
                                 <FaCalendarAlt className="w-6 h-6 text-white" />
                             </div>
-                            <h3 className="text-xl font-semibold text-white mb-2">Medication Reminders</h3>
+                            <h3 className="text-xl font-semibold text-white mb-2 drop-shadow">Medication Reminders</h3>
                             <p className="text-gray-300">
                                 Never miss a dose with our smart medication reminder system.
                             </p>
@@ -94,7 +94,7 @@ function Home() {
                             <div className="w-12 h-12 bg-indigo-500 rounded-xl flex items-center justify-center mb-4">
                                 <FaUserMd className="w-6 h-6 text-white" />
                             </div>
-                            <h3 className="text-xl font-semibold text-white mb-2">Virtual Consultation</h3>
+                            <h3 className="text-xl font-semibold text-white mb-2 drop-shadow">Virtual Consultation</h3>
                             <p className="text-gray-300">
                                 Connect with healthcare professionals for virtual consultations.
                             </p>

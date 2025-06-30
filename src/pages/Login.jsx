@@ -139,13 +139,15 @@ function Login({ setUser, setIsAuthenticated }) {
                         className="text-center mb-8 relative"
                     >
                         <motion.h2 
-                            className="text-4xl font-bold gradient-text mb-2 bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-blue-400"
-                            animate={{
-                                background: [
-                                    'linear-gradient(45deg, #818cf8, #60a5fa)',
-                                    'linear-gradient(45deg, #60a5fa, #818cf8)',
-                                ]
+                            className="text-5xl font-extrabold mb-2 bg-gradient-to-r from-indigo-400 to-blue-400 text-white drop-shadow-lg"
+                            style={{
+                                background: 'linear-gradient(90deg, #6366f1 0%, #3b82f6 100%)',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'white',
+                                textShadow: '0 4px 16px #000a, 0 1px 0 #fff8',
+                                filter: 'brightness(1.2)'
                             }}
+                            animate={{}}
                             transition={{ duration: 3, repeat: Infinity, repeatType: "reverse" }}
                         >
                             Welcome Back

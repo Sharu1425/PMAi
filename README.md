@@ -79,3 +79,10 @@ The application consists of multiple servers:
 ## License
 
 This project is licensed under the MIT License.
+
+## Authors
+- Sharvesh Ram
+- Adhithya R
+- Rahul V S
+- Ricky Xavier
+- Yokheswar

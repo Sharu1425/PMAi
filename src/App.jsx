@@ -5,7 +5,9 @@ import {
     Navigate,
     createRoutesFromElements,
     createBrowserRouter,
-    RouterProvider 
+    RouterProvider,
+    useLocation,
+    useNavigate
 } from 'react-router-dom'
 import './App.css'
 import Home from './pages/Home'
@@ -23,17 +25,37 @@ import { Toaster } from 'react-hot-toast'
 //import Logout from './pages/Logout'
 
 // Layout Component
-const RootLayout = ({ isAuthenticated, user, onLogout }) => (
-    <div className="min-h-screen relative">
-        <AnimatedBackground />
-        <div className="relative z-10">
-            <Navbar isAuthenticated={isAuthenticated} user={user} onLogout={onLogout} />
-            <main className="pt-16">
-                <Outlet />
-            </main>
+const RootLayout = ({ isAuthenticated, user, onLogout }) => {
+    const location = useLocation();
+    const navigate = useNavigate();
+
+    // Redirect to /login if not authenticated and on a protected route
+    useEffect(() => {
+        const protectedRoutes = [
+            '/dashboard',
+            '/profile',
+            '/userprofile',
+            '/symptoms',
+            '/diet',
+            '/reminders'
+        ];
+        if (!isAuthenticated && protectedRoutes.includes(location.pathname)) {
+            navigate('/login', { replace: true });
+        }
+    }, [isAuthenticated, location.pathname, navigate]);
+
+    return (
+        <div className="min-h-screen relative">
+            <AnimatedBackground />
+            <div className="relative z-10">
+                <Navbar isAuthenticated={isAuthenticated} user={user} onLogout={onLogout} />
+                <main className="pt-16">
+                    <Outlet />
+                </main>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 // Protected Route Component
 const ProtectedRoute = ({ isAuthenticated, children }) => {
@@ -49,25 +71,32 @@ function App() {
     const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
-        const token = localStorage.getItem('token')
-        const userData = localStorage.getItem('user')
+        const token = localStorage.getItem('token');
+        const userData = localStorage.getItem('user');
         if (token && userData) {
-            setIsAuthenticated(true)
-            setUser(JSON.parse(userData))
+            try {
+                const parsedUser = JSON.parse(userData);
+                setIsAuthenticated(true);
+                setUser(parsedUser);
+            } catch (e) {
+                setIsAuthenticated(false);
+                setUser(null);
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+            }
+        } else {
+            setIsAuthenticated(false);
+            setUser(null);
         }
-        setIsLoading(false)
-    }, [])
-    
+        setIsLoading(false);
+    }, []);
+
     const handleLogout = () => {
-        // Clean up authentication state
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        
-        // Reset user and authentication state
         setUser(null);
         setIsAuthenticated(false);
-        
-        console.log('User logged out successfully');
+        window.location.href = '/login'; // Force a full reload to clear any cached state
     }
 
     if (isLoading) {
@@ -124,8 +153,7 @@ function App() {
         ),
         {
             future: {
-                v7_startTransition: true,
-                v7_relativeSplatPath: true
+                v7_startTransition: true
             }
         }
     );

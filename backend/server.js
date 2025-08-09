@@ -42,15 +42,26 @@ app.use(
   }),
 )
 
-// CORS configuration (permissive for debugging)
+// CORS configuration
 app.use(
   cors({
-    origin: true, // Allow all origins for debugging
+    origin: (origin, callback) => {
+      const allowed = [
+        process.env.FRONTEND_URL,
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "https://pmai-chi.vercel.app",
+      ].filter(Boolean)
+      if (!origin || allowed.includes(origin)) return callback(null, true)
+      // Allow Vercel preview and OnRender health checks
+      if (/vercel\.app$/.test(origin)) return callback(null, true)
+      return callback(new Error(`CORS not allowed for origin: ${origin}`))
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],
     preflightContinue: false,
-    optionsSuccessStatus: 204
+    optionsSuccessStatus: 204,
   }),
 )
 
@@ -163,8 +174,8 @@ process.on("SIGTERM", async () => {
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`)
-  console.log(`📱 Frontend URL: http://localhost:5173`)
-  console.log(`🔗 API URL: http://localhost:${PORT}`)
+  console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL || "http://localhost:5173"}`)
+  console.log(`🔗 API URL: ${process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`}`)
   console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`)
 })
 

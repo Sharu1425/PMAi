@@ -1,7 +1,20 @@
 import axios from "axios"
 import type { ApiResponse, AuthResponse, User, Medication, Symptom, DietPlan, AnalysisResult } from "@/types"
 
-const API_BASE_URL = "http://localhost:5001"
+const inferBaseUrl = () => {
+  const envUrl = (import.meta as any)?.env?.VITE_API_URL as string | undefined
+  if (envUrl) return envUrl.replace(/\/$/, "")
+
+  // Allow overriding at runtime if injected on the window
+  const runtimeUrl = (globalThis as any)?.__API_URL__ as string | undefined
+  if (runtimeUrl) return runtimeUrl.replace(/\/$/, "")
+
+  // Sensible defaults per environment
+  const isProd = typeof window !== "undefined" && location.hostname !== "localhost"
+  return isProd ? "https://pmai-3rq4.onrender.com" : "http://localhost:5001"
+}
+
+const API_BASE_URL = inferBaseUrl()
 
 // Create axios instance with default config
 const api = axios.create({

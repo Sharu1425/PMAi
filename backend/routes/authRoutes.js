@@ -17,7 +17,7 @@ router.get("/google", passport.authenticate("google", {
 }));
 
 router.get("/google/callback", 
-    passport.authenticate("google", { failureRedirect: "http://localhost:5173/login" }),
+    passport.authenticate("google", { failureRedirect: process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL.replace(/\/$/, "")}/login` : "http://localhost:5173/login" }),
     (req, res) => {
         const token = jwt.sign(
             { id: req.user._id, email: req.user.email },
@@ -25,7 +25,8 @@ router.get("/google/callback",
             { expiresIn: '24h' }
         );
 
-        const redirectUrl = new URL("http://localhost:5173/dashboard");
+        const appBase = process.env.FRONTEND_URL || "http://localhost:5173";
+        const redirectUrl = new URL(`${appBase.replace(/\/$/, "")}/dashboard`);
         redirectUrl.searchParams.append("token", token);
         redirectUrl.searchParams.append("userId", req.user._id);
         redirectUrl.searchParams.append("email", req.user.email);

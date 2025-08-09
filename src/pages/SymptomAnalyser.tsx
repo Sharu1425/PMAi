@@ -13,7 +13,6 @@ import {
   TrendingUp,
   Brain,
   Activity,
-  Zap,
   MessageSquare,
   Search,
   FileText,
@@ -42,7 +41,7 @@ interface AnalysisResult {
   description: string
 }
 
-const SymptomAnalyser: React.FC<SymptomAnalyserProps> = ({ user }) => {
+const SymptomAnalyser: React.FC<SymptomAnalyserProps> = ({ user: _user }) => {
   const [symptoms, setSymptoms] = useState<string[]>([])
   const [currentSymptom, setCurrentSymptom] = useState("")
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)

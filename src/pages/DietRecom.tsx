@@ -4,7 +4,7 @@ import type React from "react"
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { FaFire, FaWeight } from "react-icons/fa"
-import { Utensils, Apple, Target, TrendingUp, Heart, Zap, ChefHat, Clock, Star, Award } from "lucide-react"
+import { Utensils, Apple, Target, Heart, Zap, ChefHat, Clock, Star, Award } from "lucide-react"
 import GlassCard from "@/components/ui/GlassCard"
 import AnimatedButton from "@/components/ui/AnimatedButton"
 import { useToast } from "@/hooks/useToast"
@@ -52,7 +52,7 @@ interface DietPlan {
   shoppingList?: string[]
 }
 
-const DietRecom: React.FC<DietRecomProps> = ({ user }) => {
+const DietRecom: React.FC<DietRecomProps> = ({ user: _user }) => {
   const [preferences, setPreferences] = useState<Preferences>({
     goal: "",
     dietType: "",
@@ -240,15 +240,7 @@ const DietRecom: React.FC<DietRecomProps> = ({ user }) => {
     }
   }
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  }
+  
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },

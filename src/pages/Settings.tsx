@@ -4,15 +4,10 @@ import type React from "react"
 import { useState } from "react"
 import { motion } from "framer-motion"
 import { 
-  Settings as SettingsIcon, 
   Bell, 
   Shield, 
   Moon, 
-  Globe, 
-  Database, 
   User, 
-  Smartphone,
-  Eye,
   Trash2,
   Save,
   RefreshCw
@@ -25,7 +20,7 @@ interface SettingsProps {
   user: any
 }
 
-const Settings: React.FC<SettingsProps> = ({ user }) => {
+const Settings: React.FC<SettingsProps> = ({ user: _user }) => {
   const [settings, setSettings] = useState({
     notifications: {
       email: true,
@@ -304,7 +299,7 @@ const Settings: React.FC<SettingsProps> = ({ user }) => {
                           </button>
                         ) : (
                           <select
-                            value={setting.value}
+                            value={String(setting.value)}
                             onChange={(e) => handleSettingChange(
                               category.title.toLowerCase().replace(" & ", "").replace(" ", ""), 
                               setting.key, 

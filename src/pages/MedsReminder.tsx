@@ -9,9 +9,7 @@ import {
   Clock,
   Calendar,
   Bell,
-  AlertCircle,
   CheckCircle,
-  Settings,
   Timer,
   Activity,
   Heart,
@@ -52,7 +50,7 @@ interface NewMedication {
   category: string
 }
 
-const MedsReminder: React.FC<MedsReminderProps> = ({ user }) => {
+const MedsReminder: React.FC<MedsReminderProps> = ({ user: _user }) => {
   const [medications, setMedications] = useState<Medication[]>([
     {
       id: 1,
@@ -96,7 +94,7 @@ const MedsReminder: React.FC<MedsReminderProps> = ({ user }) => {
   ])
 
   const [showAddForm, setShowAddForm] = useState(false)
-  const [editingMed, setEditingMed] = useState<Medication | null>(null)
+  
   const [newMedication, setNewMedication] = useState<NewMedication>({
     name: "",
     dosage: "",
@@ -444,7 +442,7 @@ const MedsReminder: React.FC<MedsReminderProps> = ({ user }) => {
                             <FaCheck className="w-4 h-4" />
                           </AnimatedButton>
                           <AnimatedButton
-                            onClick={() => setEditingMed(medication)}
+                            onClick={() => toast.info("Coming Soon", "Edit medication is not implemented yet")}
                             variant="ghost"
                             size="sm"
                             className="text-gray-400 hover:text-white"

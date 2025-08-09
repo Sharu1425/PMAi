@@ -2,7 +2,7 @@ import axios from "axios"
 import type { ApiResponse, AuthResponse, User, Medication, Symptom, DietPlan, AnalysisResult } from "@/types"
 
 const inferBaseUrl = () => {
-  const envUrl = (import.meta as any)?.env?.VITE_API_URL as string | undefined
+  const envUrl = (import.meta as any)?.env?.VITE_API_BASE_URL as string | undefined
   if (envUrl) return envUrl.replace(/\/$/, "")
 
   // Allow overriding at runtime if injected on the window

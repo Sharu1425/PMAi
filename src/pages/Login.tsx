@@ -5,7 +5,7 @@ import { useState } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { FaEye, FaEyeSlash, FaGoogle, FaUserSecret, FaArrowLeft } from "react-icons/fa"
-import axios from "axios"
+import { authAPI } from "@/utils/api"
 import GlassCard from "@/components/ui/GlassCard"
 import AnimatedButton from "@/components/ui/AnimatedButton"
 import FaceLogin from "@/components/FaceLogin"
@@ -35,17 +35,14 @@ const Login: React.FC<LoginProps> = ({ setUser, setIsAuthenticated }) => {
         return
       }
 
-      const response = await axios.post("http://localhost:5001/users/login", {
-        email,
-        password,
-      })
+      const response = await authAPI.login(email, password)
 
-      if (response.data.error) {
-        toast.error("Login Failed", response.data.message || response.data.error)
+      if ((response as any).error) {
+        toast.error("Login Failed", (response as any).message || (response as any).error)
         return
       }
 
-      const { token, user } = response.data
+      const { token, user } = response as any
 
       if (!token || !user) {
         toast.error("Login Failed", "Invalid response from server")
@@ -85,11 +82,8 @@ const Login: React.FC<LoginProps> = ({ setUser, setIsAuthenticated }) => {
           }
 
           try {
-            const authResponse = await axios.post("http://localhost:5001/auth/google", {
-              access_token: response.access_token,
-            })
-
-            const { token, user } = authResponse.data
+            const authResponse = await authAPI.googleAuth(response.access_token)
+            const { token, user } = authResponse as any
 
             if (token && user) {
               localStorage.setItem("token", token)

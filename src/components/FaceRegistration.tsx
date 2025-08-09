@@ -120,7 +120,8 @@ const FaceRegistration: React.FC<FaceRegistrationProps> = ({ userId, onSuccess, 
     setError("")
 
     try {
-      const response = await fetch("http://localhost:5001/users/register-face", {
+      const apiUrl = (window as any).__API_URL__ || (import.meta as any).env.VITE_API_BASE_URL || ""
+      const response = await fetch(`${apiUrl || ""}/users/register-face`.replace(/\/$\//, "/"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -6,7 +6,7 @@ import { useNavigate, Link } from "react-router-dom"
 import { motion } from "framer-motion"
 import { FaEye, FaEyeSlash, FaGoogle } from "react-icons/fa"
 import { User, Mail, Lock, Zap } from "lucide-react"
-import axios from "axios"
+import { authAPI } from "@/utils/api"
 import GlassCard from "@/components/ui/GlassCard"
 import AnimatedButton from "@/components/ui/AnimatedButton"
 import { useToast } from "@/hooks/useToast"
@@ -73,19 +73,19 @@ const Signup: React.FC<SignupProps> = ({ setUser, setIsAuthenticated }) => {
         return
       }
 
-      const response = await axios.post("http://localhost:5001/users/register", {
+      const response = await authAPI.signup({
         name: formData.name,
         email: formData.email,
         password: formData.password,
         username: formData.username,
       })
 
-      if (response.data.error) {
-        toast.error("Registration Failed", response.data.message || response.data.error)
+      if ((response as any).error) {
+        toast.error("Registration Failed", (response as any).message || (response as any).error)
         return
       }
 
-      const { token, user } = response.data
+      const { token, user } = response as any
 
       if (!token || !user) {
         toast.error("Registration Failed", "Invalid response from server")
@@ -125,11 +125,8 @@ const Signup: React.FC<SignupProps> = ({ setUser, setIsAuthenticated }) => {
           }
 
           try {
-            const authResponse = await axios.post("http://localhost:5001/auth/google", {
-              access_token: response.access_token,
-            })
-
-            const { token, user } = authResponse.data
+            const authResponse = await authAPI.googleAuth(response.access_token)
+            const { token, user } = authResponse as any
 
             if (token && user) {
               localStorage.setItem("token", token)

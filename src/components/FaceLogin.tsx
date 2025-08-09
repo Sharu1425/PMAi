@@ -102,8 +102,9 @@ const FaceLogin: React.FC<FaceLoginProps> = ({ onSuccess, onCancel }) => {
 
       const imageData = canvas.toDataURL("image/jpeg", 0.8)
 
-      // Use authAPI instead of direct axios
-      const response = await fetch("http://localhost:5001/users/face-login", {
+      // Use dynamic API base via window.__API_URL__ or VITE_API_URL fallback handled server-side
+      const apiUrl = (window as any).__API_URL__ || (import.meta as any).env.VITE_API_BASE_URL || ""
+      const response = await fetch(`${apiUrl || ""}/users/face-login`.replace(/\/$\//, "/"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

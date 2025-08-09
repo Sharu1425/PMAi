@@ -4,6 +4,7 @@ node_modules/
 .pnp.js
 
 # Environment variables
+env.txt
 .env
 .env.local
 .env.development.local

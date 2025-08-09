@@ -13,7 +13,7 @@ console.log("Google Client Secret:", process.env.GOOGLE_CLIENT_SECRET);
 // JWT Strategy
 const jwtOptions = {
     jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-    secretOrKey: process.env.JWT_SECRET
+    secretOrKey: process.env.JWT_SECRET || 'fallback-jwt-secret-for-development'
 };
 
 passport.use(new JwtStrategy(jwtOptions, async (payload, done) => {
@@ -28,12 +28,13 @@ passport.use(new JwtStrategy(jwtOptions, async (payload, done) => {
     }
 }));
 
-// Google Strategy
-passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: "http://localhost:5001/auth/google/callback"
-}, async (accessToken, refreshToken, profile, done) => {
+// Google Strategy (only configure if credentials are available)
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    passport.use(new GoogleStrategy({
+        clientID: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        callbackURL: "http://localhost:5001/auth/google/callback"
+    }, async (accessToken, refreshToken, profile, done) => {
     try {
         let user = await User.findOne({ googleId: profile.id });
         
@@ -59,7 +60,10 @@ passport.use(new GoogleStrategy({
     } catch (error) {
         return done(error, null);
     }
-}));
+    }));
+} else {
+    console.log("Google OAuth not configured - Google authentication will not be available");
+}
 
 passport.serializeUser((user, done) => {
     done(null, user.id);
@@ -75,4 +79,3 @@ passport.deserializeUser(async (id, done) => {
 });
 
 export default passport;
-

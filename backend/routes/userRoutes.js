@@ -1,283 +1,302 @@
-import express from "express";
-import { loginUser, regUser } from "../controllers/userController.js";
-import User from "../models/user.js";
-import passport from "passport";
-import multer from "multer";
-import path from "path";
-import fs from "fs";
+import express from "express"
+import jwt from "jsonwebtoken"
+import User from "../models/user.js"
+import { auth } from "../middleware/auth.js"
+import { validateRegistration, validateLogin } from "../middleware/validation.js"
+import rateLimit from "express-rate-limit"
 
-const router = express.Router();
+const router = express.Router()
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'profile');
-    
-    // Create directory if it doesn't exist
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    
-    cb(null, uploadDir);
+// Rate limiting for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 requests per windowMs
+  message: {
+    error: "Too many authentication attempts, please try again later.",
   },
-  filename: function (req, file, cb) {
-    const userId = req.user.id;
-    const fileExt = path.extname(file.originalname);
-    cb(null, `${userId}-${Date.now()}${fileExt}`);
+})
+
+// Register user
+router.post("/register", validateRegistration, async (req, res) => {
+  try {
+    console.log("🔍 Registration attempt:", req.body)
+    const { name, username, email, password } = req.body
+
+    // Check if user already exists
+    const queries = [{ email: email.toLowerCase() }]
+    if (username) {
+      queries.push({ username: username.toLowerCase() })
+    }
+    const existingUser = await User.findOne({
+      $or: queries,
+    })
+
+    if (existingUser) {
+      return res.status(400).json({
+        error: "User already exists",
+        message: existingUser.email === email.toLowerCase() ? "Email already registered" : "Username already taken",
+      })
+    }
+
+    // Create new user
+    const user = new User({
+      name: name.trim(),
+      username: username ? username.toLowerCase().trim() : undefined,
+      email: email.toLowerCase().trim(),
+      password,
+    })
+
+    await user.save()
+
+    // Generate JWT token
+    const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET || 'fallback-secret', { expiresIn: "7d" })
+
+    res.status(201).json({
+      success: true,
+      message: "User registered successfully",
+      token,
+      user: user.getPublicProfile(),
+    })
+  } catch (error) {
+    console.error("❌ Registration error:", error)
+    console.error("❌ Error stack:", error.stack)
+    res.status(500).json({
+      error: "Registration failed",
+      message: "Internal server error",
+      details: error.message
+    })
   }
-});
+})
 
-// File filter to only accept images
-const fileFilter = (req, file, cb) => {
-  // Accept image files only
-  if (file.mimetype.startsWith('image/')) {
-    cb(null, true);
-  } else {
-    cb(new Error('Only image files are allowed!'), false);
+// Login user
+router.post("/login", authLimiter, validateLogin, async (req, res) => {
+  try {
+    const { email, password } = req.body
+
+    // Find user by email or username; include password for verification
+    const lookup = (email || "").toLowerCase().trim()
+    const user = await User.findOne({
+      $or: [{ email: lookup }, { username: lookup }],
+    }).select("+password")
+    if (!user) {
+      return res.status(401).json({
+        error: "Invalid credentials",
+        message: "Email or password is incorrect",
+      })
+    }
+
+    // Check if user is active
+    if (!user.isActive) {
+      return res.status(401).json({
+        error: "Account disabled",
+        message: "Your account has been disabled. Please contact support.",
+      })
+    }
+
+    // Verify password
+    const isPasswordValid = await user.comparePassword(password)
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        error: "Invalid credentials",
+        message: "Email or password is incorrect",
+      })
+    }
+
+    // Update last login
+    user.lastLogin = new Date()
+    await user.save()
+
+    // Generate JWT token
+    const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET || 'fallback-secret', { expiresIn: "7d" })
+
+    res.json({
+      success: true,
+      message: "Login successful",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        username: user.username,
+        profilePicture: user.profilePicture,
+        isAdmin: user.isAdmin,
+        hasFaceRegistered: user.hasFaceRegistered,
+        lastLogin: user.lastLogin,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+    })
+  } catch (error) {
+    console.error("Login error:", error)
+    res.status(500).json({
+      error: "Login failed",
+      message: "Internal server error",
+    })
   }
-};
+})
 
-const upload = multer({ 
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
-  fileFilter: fileFilter
-});
-
-// Debug endpoint to check user existence and details
-router.get("/debug/user/:email", async (req, res) => {
-    try {
-        const { email } = req.params;
-        const user = await User.findOne({ email });
-        
-        if (user) {
-            res.json({ 
-                exists: true, 
-                user: {
-                    id: user._id,
-                    email: user.email,
-                    username: user.username,
-                    hasPassword: !!user.password,
-                    isGoogleUser: !!user.googleId,
-                    createdAt: user.createdAt,
-                    lastLogin: user.lastLogin
-                }
-            });
-        } else {
-            res.json({ exists: false, message: "User not found" });
-        }
-    } catch (error) {
-        console.error("Debug error:", error);
-        res.status(500).json({ error: "Error checking user" });
+// Get user profile
+router.get("/profile", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select(
+      "-password -faceDescriptor -emailVerificationToken -passwordResetToken -passwordResetExpires"
+    )
+    if (!user) {
+      return res.status(404).json({
+        error: "User not found",
+        message: "User profile not found",
+      })
     }
-});
 
-// Route for user login
-router.post("/login", async (req, res) => {
-    try {
-        // Extract credentials from request body
-        const { email, password } = req.body;
-        
-        // Log the login attempt (do not log passwords)
-        console.log(`Login attempt for email: ${email}`);
-        
-        // Call the login controller function
-        const result = await loginUser(email, password);
-        
-        // Send appropriate response based on the result
-        res.status(result.status).json({ 
-            message: result.message, 
-            error: result.error, 
-            user: result.user,
-            token: result.token 
-        });
-    } catch (error) {
-        console.error("Login error:", error);
-        res.status(500).json({ 
-            message: "An error occurred during login",
-            error: error.message 
-        });
-    }
-});
+    res.json({ success: true, user })
+  } catch (error) {
+    console.error("Profile fetch error:", error)
+    res.status(500).json({
+      error: "Profile fetch failed",
+      message: "Internal server error",
+    })
+  }
+})
 
-// Route for user registration
-router.post("/register", async (req, res) => {
-    try {
-        // Extract user data from request body
-        const { username, email, password } = req.body;
-        
-        // Validate required fields
-        if (!username || !email || !password) {
-            return res.status(400).json({
-                message: "Missing required fields",
-                error: "All fields are required"
-            });
-        }
-        
-        // Call the registration controller function
-        const result = await regUser(username, email, password);
-        
-        // Send appropriate response based on the result
-        res.status(result.status).json({ 
-            message: result.message, 
-            error: result.error,
-            user: result.user,
-            token: result.token 
-        });
-    } catch (error) {
-        console.error("Registration error:", error);
-        res.status(500).json({ 
-            message: "An error occurred during registration",
-            error: error.message 
-        });
-    }
-});
+// Update user profile
+router.put("/profile", auth, async (req, res) => {
+  try {
+    const allowedUpdates = [
+      "name",
+      "age",
+      "gender",
+      "height",
+      "weight",
+      "bloodType",
+      "allergies",
+      "medicalConditions",
+      "dietaryRestrictions",
+      "weightGoals",
+      "activityLevel",
+      "phone",
+      "username",
+      "profilePicture",
+    ]
+    const updates = {}
 
-// Protected route to get user profile
-router.get("/profile", passport.authenticate('jwt', { session: false }), async (req, res) => {
-    try {
-        // Fetch user data excluding password for security
-        const user = await User.findById(req.user.id).select('-password');
-        
-        if (!user) {
-            return res.status(404).json({ error: "User not found" });
-        }
-        
-        res.json(user);
-    } catch (error) {
-        console.error("Profile error:", error);
-        res.status(500).json({ error: "Error fetching profile" });
-    }
-});
-
-// Route to update user profile information
-router.put("/profile", passport.authenticate('jwt', { session: false }), async (req, res) => {
-    try {
-        const {
-            name,
-            age,
-            gender,
-            weight,
-            height,
-            bloodType,
-            allergies,
-            dietaryRestrictions,
-            medicalConditions,
-            weightGoals,
-            activityLevel
-        } = req.body;
-
-        // Find the user by ID and update profile information
-        const updatedUser = await User.findByIdAndUpdate(
-            req.user.id,
-            {
-                name,
-                age,
-                gender,
-                weight,
-                height,
-                bloodType,
-                allergies,
-                dietaryRestrictions,
-                medicalConditions,
-                weightGoals,
-                activityLevel
-            },
-            { new: true, runValidators: true }
-        ).select('-password');
-
-        if (!updatedUser) {
-            return res.status(404).json({ error: "User not found" });
-        }
-
-        res.json({
-            success: true,
-            message: "Profile updated successfully",
-            user: updatedUser
-        });
-    } catch (error) {
-        console.error("Profile update error:", error);
-        res.status(500).json({ 
-            error: "Error updating profile",
-            message: error.message
-        });
-    }
-});
-
-// Route to upload profile image
-router.post('/upload-profile-image', 
-  passport.authenticate('jwt', { session: false }), 
-  upload.single('profileImage'), 
-  async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'No file uploaded or invalid file type' 
-        });
+    // Filter allowed updates
+    Object.keys(req.body).forEach((key) => {
+      if (allowedUpdates.includes(key)) {
+        updates[key] = req.body[key]
       }
+    })
 
-      const fileUrl = `/uploads/profile/${req.file.filename}`;
-      
-      // Update user with new profile picture URL
-      const updatedUser = await User.findByIdAndUpdate(
-        req.user.id,
-        { profilePicture: fileUrl },
-        { new: true }
-      );
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { $set: updates },
+      { new: true, runValidators: true }
+    ).select(
+      "-password -faceDescriptor -emailVerificationToken -passwordResetToken -passwordResetExpires"
+    )
 
-      if (!updatedUser) {
-        return res.status(404).json({ 
-          success: false, 
-          message: 'User not found' 
-        });
-      }
-
-      res.json({
-        success: true,
-        message: 'Profile picture uploaded successfully',
-        imageUrl: fileUrl,
-        user: {
-          id: updatedUser._id,
-          name: updatedUser.name,
-          email: updatedUser.email,
-          profilePicture: updatedUser.profilePicture
-        }
-      });
-    } catch (error) {
-      console.error('Profile image upload error:', error);
-      res.status(500).json({ 
-        success: false, 
-        message: 'Error uploading profile picture',
-        error: error.message 
-      });
+    if (!user) {
+      return res.status(404).json({
+        error: "User not found",
+        message: "User profile not found",
+      })
     }
-});
 
-// Route for user logout
-router.post("/logout", async (req, res) => {
-    try {
-        // For JWT-based authentication, the client should remove the token
-        // Here we just log the logout action and return a success response
-        
-        // If userId is provided, update the lastLogout timestamp in user record
-        const { userId } = req.body;
-        if (userId) {
-            await User.findByIdAndUpdate(userId, { lastLogout: Date.now() });
-        }
-        
-        // Return success
-        res.status(200).json({ 
-            success: true,
-            message: "Logout successful" 
-        });
-    } catch (error) {
-        console.error("Logout error:", error);
-        res.status(500).json({ 
-            success: false,
-            message: "An error occurred during logout",
-            error: error.message 
-        });
+    res.json({ success: true, message: "Profile updated successfully", user })
+  } catch (error) {
+    console.error("Profile update error:", error)
+    res.status(500).json({
+      error: "Profile update failed",
+      message: "Internal server error",
+    })
+  }
+})
+
+// Face registration endpoint
+router.post("/register-face", auth, async (req, res) => {
+  try {
+    const { images } = req.body
+
+    if (!images || !Array.isArray(images) || images.length < 3) {
+      return res.status(400).json({
+        error: "Invalid images",
+        message: "At least 3 images are required for face registration",
+      })
     }
-});
 
-export default router;
+    // In a real implementation, you would process the images with a face recognition service
+    // For now, we'll just store a placeholder
+    const faceData = JSON.stringify({
+      registered: true,
+      timestamp: new Date(),
+      imageCount: images.length,
+    })
+
+    const user = await User.findByIdAndUpdate(req.user.id, { faceData }, { new: true })
+
+    res.json({
+      success: true,
+      message: "Face registered successfully",
+    })
+  } catch (error) {
+    console.error("Face registration error:", error)
+    res.status(500).json({
+      error: "Face registration failed",
+      message: "Internal server error",
+    })
+  }
+})
+
+// Face login endpoint
+router.post("/face-login", async (req, res) => {
+  try {
+    const { image } = req.body
+
+    if (!image) {
+      return res.status(400).json({
+        error: "No image provided",
+        message: "Face image is required for authentication",
+      })
+    }
+
+    // In a real implementation, you would:
+    // 1. Process the image with face recognition
+    // 2. Compare with stored face data
+    // 3. Return user if match found
+
+    // For demo purposes, we'll simulate a successful match
+    // In production, replace this with actual face recognition logic
+    const users = await User.find({ faceData: { $exists: true, $ne: null } })
+
+    if (users.length === 0) {
+      return res.status(401).json({
+        error: "Face not recognized",
+        message: "No registered face found",
+      })
+    }
+
+    // Simulate face recognition (use first user with face data for demo)
+    const user = users[0]
+
+    // Update last login
+    user.lastLogin = new Date()
+    await user.save()
+
+    // Generate JWT token
+    const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET || 'fallback-secret', { expiresIn: "7d" })
+
+    res.json({
+      success: true,
+      message: "Face login successful",
+      token,
+      user: user.getPublicProfile(),
+    })
+  } catch (error) {
+    console.error("Face login error:", error)
+    res.status(500).json({
+      error: "Face login failed",
+      message: "Internal server error",
+    })
+  }
+})
+
+export default router

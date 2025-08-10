@@ -37,6 +37,34 @@ router.post('/diet-recommendations', async (req, res) => {
     }
 });
 
+// Chat endpoint for AI conversations
+router.post('/chat', async (req, res) => {
+    try {
+        const { message, context, conversationHistory } = req.body;
+        
+        if (!message) {
+            return res.status(400).json({
+                error: 'Message is required',
+                success: false
+            });
+        }
+
+        // Use the analyzeSymptoms function for chat as well
+        const reply = await analyzeSymptoms(message, conversationHistory);
+        return res.json({ 
+            data: { message: reply }, 
+            success: true 
+        });
+    } catch (error) {
+        console.error('Error in AI chat:', error);
+        return res.status(500).json({ 
+            error: 'Failed to process chat message',
+            message: error.message,
+            success: false
+        });
+    }
+});
+
 // Health check endpoint
 router.get('/health', (req, res) => {
     res.json({ 

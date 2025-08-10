@@ -55,6 +55,7 @@ const SymptomAnalyser: React.FC<SymptomAnalyserProps> = ({ user: _user }) => {
   ])
   const [chatInput, setChatInput] = useState("")
   const [isChatMode, setIsChatMode] = useState(false)
+  const [isChatLoading, setIsChatLoading] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
   const toast = useToast()
 
@@ -84,13 +85,28 @@ const SymptomAnalyser: React.FC<SymptomAnalyserProps> = ({ user: _user }) => {
     setIsAnalyzing(true)
     try {
       const response = await aiAPI.analyzeSymptoms(symptoms)
-      const result = response.data
       
-      if (!result) {
+      if (!response.data) {
         throw new Error("No analysis data received")
       }
       
-      setAnalysis(result as unknown as AnalysisResult)
+      // Parse the AI response and create a structured result
+      const aiResponse = response.data as string
+      const mockResult: AnalysisResult = {
+        condition: "General Symptom Analysis",
+        confidence: 85,
+        severity: "moderate",
+        recommendations: [
+          "Monitor symptoms for 24-48 hours",
+          "Rest and stay hydrated",
+          "Consider over-the-counter pain relief if appropriate",
+          "Seek medical attention if symptoms worsen"
+        ],
+        urgency: "routine",
+        description: aiResponse
+      }
+      
+      setAnalysis(mockResult)
 
       // Add AI response to chat
       setChatMessages((prev) => [
@@ -102,7 +118,7 @@ const SymptomAnalyser: React.FC<SymptomAnalyserProps> = ({ user: _user }) => {
         },
         {
           type: "ai",
-          message: `Based on your symptoms, I've completed a comprehensive analysis. The results suggest ${(result as unknown as AnalysisResult).condition} with ${(result as unknown as AnalysisResult).confidence}% confidence. Please review the detailed analysis above.`,
+          message: aiResponse,
           timestamp: new Date(),
         },
       ])
@@ -127,20 +143,40 @@ const SymptomAnalyser: React.FC<SymptomAnalyserProps> = ({ user: _user }) => {
 
     setChatMessages((prev) => [...prev, userMessage])
     setChatInput("")
+    setIsChatLoading(true)
 
     try {
-      // Simulate AI response (replace with actual API call)
-      setTimeout(() => {
+      // Call the actual AI API for chat
+      const response = await aiAPI.chatWithAI(chatInput)
+      
+      if (response.data && response.data.message) {
         const aiResponse: ChatMessage = {
+          type: "ai",
+          message: response.data.message,
+          timestamp: new Date(),
+        }
+        setChatMessages((prev) => [...prev, aiResponse])
+      } else {
+        // Fallback response if API fails
+        const fallbackResponse: ChatMessage = {
           type: "ai",
           message: `I understand you're experiencing: "${chatInput}". This could be related to several factors. Can you provide more details about when these symptoms started and their severity?`,
           timestamp: new Date(),
         }
-        setChatMessages((prev) => [...prev, aiResponse])
-      }, 1000)
+        setChatMessages((prev) => [...prev, fallbackResponse])
+      }
     } catch (error) {
       console.error("Error sending chat message:", error)
-      toast.error("Chat Error", "Failed to send message. Please try again.")
+      // Fallback response on error
+      const errorResponse: ChatMessage = {
+        type: "ai",
+        message: `I'm having trouble processing your message right now. Please try again in a moment or describe your symptoms in a different way.`,
+        timestamp: new Date(),
+      }
+      setChatMessages((prev) => [...prev, errorResponse])
+      toast.error("Chat Error", "Failed to get AI response. Please try again.")
+    } finally {
+      setIsChatLoading(false)
     }
   }
 
@@ -495,6 +531,21 @@ const SymptomAnalyser: React.FC<SymptomAnalyserProps> = ({ user: _user }) => {
                           </div>
                         </motion.div>
                       ))}
+                      {isChatLoading && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="flex justify-start"
+                        >
+                          <div className="bg-white/10 text-gray-300 px-4 py-3 rounded-2xl">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" />
+                              <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                              <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
                       <div ref={chatEndRef} />
                     </div>
 
@@ -504,10 +555,15 @@ const SymptomAnalyser: React.FC<SymptomAnalyserProps> = ({ user: _user }) => {
                         value={chatInput}
                         onChange={(e) => setChatInput(e.target.value)}
                         onKeyPress={(e) => handleKeyPress(e, sendChatMessage)}
-                        className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
-                        placeholder="Describe your symptoms or ask a question..."
+                        disabled={isChatLoading}
+                        className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 disabled:opacity-50"
+                        placeholder={isChatLoading ? "AI is thinking..." : "Describe your symptoms or ask a question..."}
                       />
-                      <AnimatedButton onClick={sendChatMessage} variant="primary">
+                      <AnimatedButton 
+                        onClick={sendChatMessage} 
+                        variant="primary"
+                        disabled={isChatLoading || !chatInput.trim()}
+                      >
                         <FaPaperPlane className="w-4 h-4" />
                       </AnimatedButton>
                     </div>

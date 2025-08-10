@@ -1,5 +1,5 @@
 import axios from "axios"
-import type { ApiResponse, AuthResponse, User, Medication, Symptom, DietPlan, AnalysisResult } from "@/types"
+import type { ApiResponse, AuthResponse, User, Medication, Symptom, DietPlan } from "@/types"
 
 const inferBaseUrl = () => {
   const envUrl = (import.meta as any)?.env?.VITE_API_BASE_URL as string | undefined
@@ -124,7 +124,7 @@ export const userAPI = {
 
 // AI API
 export const aiAPI = {
-  analyzeSymptoms: async (symptoms: string[]): Promise<ApiResponse<AnalysisResult>> => {
+  analyzeSymptoms: async (symptoms: string[]): Promise<ApiResponse<string>> => {
     const response = await api.post("/api/ai/analyze-symptoms", { symptoms })
     return response.data
   },

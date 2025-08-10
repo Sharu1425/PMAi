@@ -33,12 +33,11 @@ interface ChatMessage {
 }
 
 interface AnalysisResult {
-  condition: string
-  confidence: number
-  severity: string
+  possibleConditions: string[]
   recommendations: string[]
-  urgency: string
-  description: string
+  urgencyLevel: "low" | "medium" | "high"
+  analysis: string
+  confidence: number
 }
 
 const SymptomAnalyser: React.FC<SymptomAnalyserProps> = ({ user: _user }) => {
@@ -93,17 +92,16 @@ const SymptomAnalyser: React.FC<SymptomAnalyserProps> = ({ user: _user }) => {
       // Parse the AI response and create a structured result
       const aiResponse = response.data as string
       const mockResult: AnalysisResult = {
-        condition: "General Symptom Analysis",
+        possibleConditions: ["General Symptom Analysis"],
         confidence: 85,
-        severity: "moderate",
+        urgencyLevel: "medium",
+        analysis: aiResponse,
         recommendations: [
           "Monitor symptoms for 24-48 hours",
           "Rest and stay hydrated",
           "Consider over-the-counter pain relief if appropriate",
           "Seek medical attention if symptoms worsen"
-        ],
-        urgency: "routine",
-        description: aiResponse
+        ]
       }
       
       setAnalysis(mockResult)
@@ -187,28 +185,26 @@ const SymptomAnalyser: React.FC<SymptomAnalyserProps> = ({ user: _user }) => {
     }
   }
 
-  const getSeverityColor = (severity: string) => {
-    switch (severity?.toLowerCase()) {
+  const getSeverityColor = (urgencyLevel: string) => {
+    switch (urgencyLevel?.toLowerCase()) {
       case "low":
         return "from-green-500 to-emerald-500"
-      case "moderate":
+      case "medium":
         return "from-yellow-500 to-orange-500"
       case "high":
         return "from-orange-500 to-red-500"
-      case "urgent":
-        return "from-red-500 to-pink-500"
       default:
         return "from-blue-500 to-cyan-500"
     }
   }
 
-  const getUrgencyIcon = (urgency: string) => {
-    switch (urgency?.toLowerCase()) {
-      case "immediate":
+  const getUrgencyIcon = (urgencyLevel: string) => {
+    switch (urgencyLevel?.toLowerCase()) {
+      case "high":
         return <AlertTriangle className="w-6 h-6 text-red-400" />
-      case "soon":
+      case "medium":
         return <Clock className="w-6 h-6 text-orange-400" />
-      case "routine":
+      case "low":
         return <Heart className="w-6 h-6 text-green-400" />
       default:
         return <Stethoscope className="w-6 h-6 text-blue-400" />
@@ -420,13 +416,13 @@ const SymptomAnalyser: React.FC<SymptomAnalyserProps> = ({ user: _user }) => {
                           <div className="text-center">
                             <div
                               className={`w-16 h-16 mx-auto mb-3 bg-gradient-to-br ${getSeverityColor(
-                                analysis.severity
+                                analysis.urgencyLevel
                               )} rounded-2xl flex items-center justify-center shadow-lg`}
                             >
-                              {getUrgencyIcon(analysis.urgency)}
+                              {getUrgencyIcon(analysis.urgencyLevel)}
                             </div>
-                            <div className="text-white font-semibold">{analysis.condition}</div>
-                            <div className="text-gray-400 text-sm">Potential Condition</div>
+                            <div className="text-white font-semibold">{analysis.possibleConditions.join(", ")}</div>
+                            <div className="text-gray-400 text-sm">Potential Conditions</div>
                           </div>
 
                           <div className="text-center">
@@ -441,8 +437,8 @@ const SymptomAnalyser: React.FC<SymptomAnalyserProps> = ({ user: _user }) => {
                             <div className="w-16 h-16 mx-auto mb-3 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center shadow-lg">
                               <Activity className="w-6 h-6 text-white" />
                             </div>
-                            <div className="text-white font-semibold capitalize">{analysis.severity}</div>
-                            <div className="text-gray-400 text-sm">Severity Level</div>
+                            <div className="text-white font-semibold capitalize">{analysis.urgencyLevel}</div>
+                            <div className="text-gray-400 text-sm">Urgency Level</div>
                           </div>
                         </div>
 
@@ -452,7 +448,7 @@ const SymptomAnalyser: React.FC<SymptomAnalyserProps> = ({ user: _user }) => {
                               <FileText className="w-5 h-5 mr-2 text-blue-400" />
                               Description
                             </h3>
-                            <p className="text-gray-300 leading-relaxed">{analysis.description}</p>
+                            <p className="text-gray-300 leading-relaxed">{analysis.analysis}</p>
                           </div>
 
                           <div>

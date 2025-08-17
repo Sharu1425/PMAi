@@ -13,9 +13,8 @@ dotenv.config()
 import userRoutes from "./routes/userRoutes.js"
 import authRoutes from "./routes/authRoutes.js"
 import aiRoutes from "./routes/aiRoutes.js"
-// Optional routes (not present in repo). Leave commented if missing.
-// import medicationRoutes from "./routes/medicationRoutes.js"
-// import healthRoutes from "./routes/healthRoutes.js"
+import medicationRoutes from "./routes/medicationRoutes.js"
+import healthRoutes from "./routes/healthRoutes.js"
 
 // Import middleware
 // Simple error handler fallback
@@ -71,6 +70,9 @@ app.use(morgan("combined"))
 app.use(express.json({ limit: "10mb" }))
 app.use(express.urlencoded({ extended: true, limit: "10mb" }))
 
+// Serve static files from uploads directory
+app.use("/uploads", express.static("uploads"))
+
 // Session configuration
 app.use(
   session({
@@ -121,9 +123,10 @@ app.use("/auth", authRoutes)
 // Support both /api and /api/ai
 app.use("/api/ai", aiRoutes)
 app.use("/api", aiRoutes)
-// Optional routes (only mount if available)
-// if (medicationRoutes) app.use("/api/medications", medicationRoutes)
-// if (healthRoutes) app.use("/api/health", healthRoutes)
+
+// Mount medication and health routes
+app.use("/api/medications", medicationRoutes)
+app.use("/api/health", healthRoutes)
 
 // 404 handler
 app.use("*", (req, res) => {

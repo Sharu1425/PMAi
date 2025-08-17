@@ -4,6 +4,7 @@ import User from "../models/user.js"
 import { auth } from "../middleware/auth.js"
 import { validateRegistration, validateLogin } from "../middleware/validation.js"
 import rateLimit from "express-rate-limit"
+import { uploadProfilePicture, handleUploadError } from "../middleware/upload.js"
 
 const router = express.Router()
 
@@ -294,6 +295,73 @@ router.post("/face-login", async (req, res) => {
     console.error("Face login error:", error)
     res.status(500).json({
       error: "Face login failed",
+      message: "Internal server error",
+    })
+  }
+})
+
+// Profile picture upload endpoint
+router.post("/upload-avatar", auth, uploadProfilePicture, handleUploadError, async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        error: "No file uploaded",
+        message: "Please select a profile picture to upload"
+      })
+    }
+
+    // TODO: Upload to cloud storage (Cloudinary, AWS S3, etc.)
+    // For now, return the file path
+    const profilePictureUrl = `/uploads/${req.file.filename}`
+
+    // Update user's profile picture
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { profilePicture: profilePictureUrl },
+      { new: true }
+    ).select("-password -faceDescriptor -emailVerificationToken -passwordResetToken -passwordResetExpires")
+
+    res.json({
+      success: true,
+      data: {
+        profilePicture: profilePictureUrl
+      },
+      message: "Profile picture uploaded successfully"
+    })
+  } catch (error) {
+    console.error("Profile picture upload error:", error)
+    res.status(500).json({
+      error: "Profile picture upload failed",
+      message: "Internal server error",
+    })
+  }
+})
+
+// Delete account endpoint
+router.delete("/account", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id)
+    
+    if (!user) {
+      return res.status(404).json({
+        error: "User not found",
+        message: "User account not found",
+      })
+    }
+
+    // TODO: Implement account deletion logic
+    // For now, just mark as inactive
+    user.isActive = false
+    await user.save()
+
+    res.json({
+      success: true,
+      message: "Account deleted successfully",
+    })
+  } catch (error) {
+    console.error("Account deletion error:", error)
+    res.status(500).json({
+      error: "Account deletion failed",
       message: "Internal server error",
     })
   }

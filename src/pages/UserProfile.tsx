@@ -386,7 +386,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user }) => {
                                 value={profileData[field.key as keyof ProfileData]}
                                 onChange={handleInputChange}
                                 disabled={!isEditing}
-                                className="w-full pl-12 pr-4 py-4 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/10"
+                                className="w-full pl-12 pr-4 py-4 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white/10 custom-select"
                               >
                                 {(field as SelectField).options.map((option: string) => (
                                   <option key={option} value={option} className="bg-gray-800">

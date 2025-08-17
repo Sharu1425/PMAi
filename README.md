@@ -305,12 +305,24 @@ Authorization: Bearer <your-jwt-token>
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 🆘 Support
+## 🆘 Support & Troubleshooting
 
 For support and questions:
 - Create an issue in the repository
 - Check the documentation
 - Review the API endpoints
+
+### 🚨 Common Issues
+
+**AI Service 500 Errors**: If you're getting 500 errors on AI endpoints, check the [Troubleshooting Guide](docs/TROUBLESHOOTING.md) for solutions.
+
+**Quick Fix**: Most AI issues are resolved by setting the correct `GEMINI_API_KEY` environment variable.
+
+### 📚 Documentation
+
+- [API Documentation](docs/API.md) - Complete API reference
+- [Setup Guide](docs/SETUP.md) - Installation and deployment
+- [Troubleshooting Guide](docs/TROUBLESHOOTING.md) - Common issues and solutions
 
 ## 🔄 Changelog
 

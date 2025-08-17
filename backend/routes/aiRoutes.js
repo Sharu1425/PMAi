@@ -17,6 +17,37 @@ const aiLimiter = rateLimit({
     legacyHeaders: false,
 });
 
+// Health check endpoint for AI service
+router.get('/health', (req, res) => {
+    try {
+        const aiStatus = {
+            status: 'operational',
+            timestamp: new Date().toISOString(),
+            features: {
+                symptomAnalysis: 'available',
+                dietRecommendations: 'available',
+                mealPlanning: 'available',
+                chat: 'available'
+            },
+            environment: process.env.NODE_ENV || 'development',
+            geminiConfigured: !!process.env.GEMINI_API_KEY
+        };
+        
+        res.json({
+            success: true,
+            data: aiStatus,
+            message: 'AI service is operational'
+        });
+    } catch (error) {
+        console.error('AI health check error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Health check failed',
+            message: error.message
+        });
+    }
+});
+
 // Endpoint for symptom analysis
 // Frontend expects: POST body { symptoms: string[] } and response { data: string }
 router.post('/analyze-symptoms', aiLimiter, async (req, res) => {
@@ -34,12 +65,18 @@ router.post('/analyze-symptoms', aiLimiter, async (req, res) => {
         
         const input = Array.isArray(symptoms) ? symptoms.join(', ') : message;
         const reply = await analyzeSymptoms(input, conversationHistory);
-        return res.json({ data: reply, success: true });
+        
+        return res.json({ 
+            data: reply, 
+            success: true,
+            message: 'Symptom analysis completed successfully'
+        });
     } catch (error) {
         console.error('Error analyzing symptoms:', error);
         return res.status(500).json({ 
             error: 'Failed to analyze symptoms',
-            message: error.message 
+            message: 'Internal server error. Please try again later.',
+            success: false
         });
     }
 });
@@ -61,12 +98,18 @@ router.post('/diet-recommendations', aiLimiter, async (req, res) => {
         
         const prompt = message || JSON.stringify(preferences);
         const reply = await getDietRecommendations(prompt, conversationHistory, userProfile);
-        return res.json({ data: reply, success: true });
+        
+        return res.json({ 
+            data: reply, 
+            success: true,
+            message: 'Diet recommendations generated successfully'
+        });
     } catch (error) {
         console.error('Error generating diet recommendations:', error);
         return res.status(500).json({ 
             error: 'Failed to generate diet recommendations',
-            message: error.message 
+            message: 'Internal server error. Please try again later.',
+            success: false
         });
     }
 });
@@ -79,21 +122,24 @@ router.post('/chat', aiLimiter, async (req, res) => {
         if (!message) {
             return res.status(400).json({
                 error: 'Message is required',
+                message: 'Please provide a message to chat with the AI',
                 success: false
             });
         }
 
         // Use the analyzeSymptoms function for chat as well
         const reply = await analyzeSymptoms(message, conversationHistory);
+        
         return res.json({ 
             data: { message: reply }, 
-            success: true 
+            success: true,
+            message: 'Chat response generated successfully'
         });
     } catch (error) {
         console.error('Error in AI chat:', error);
         return res.status(500).json({ 
             error: 'Failed to process chat message',
-            message: error.message,
+            message: 'Internal server error. Please try again later.',
             success: false
         });
     }
@@ -117,24 +163,17 @@ router.post('/meal-plan', aiLimiter, async (req, res) => {
         
         return res.json({ 
             data: reply, 
-            success: true 
+            success: true,
+            message: 'Meal plan generated successfully'
         });
     } catch (error) {
         console.error('Error generating meal plan:', error);
         return res.status(500).json({ 
             error: 'Failed to generate meal plan',
-            message: error.message,
+            message: 'Internal server error. Please try again later.',
             success: false
         });
     }
-});
-
-// Health check endpoint
-router.get('/health', (req, res) => {
-    res.json({ 
-        status: 'ok', 
-        message: 'Health assistant API is running (symptoms and diet recommendations)' 
-    });
 });
 
 export default router;

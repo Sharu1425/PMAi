@@ -43,6 +43,84 @@ body {
   font-variation-settings: "opsz" 32;
 }
 
+/* Custom Select/Dropdown Styling */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 40px;
+}
+
+/* Custom select class for enhanced styling */
+.custom-select {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.custom-select:focus {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: #8b5cf6 !important;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1) !important;
+}
+
+/* Dropdown option styling */
+select option {
+  background-color: #1e1b4b;
+  color: white;
+  padding: 12px;
+  border: none;
+}
+
+select option:hover {
+  background-color: #312e81;
+}
+
+select option:checked {
+  background-color: #4f46e5;
+  color: white;
+}
+
+/* Additional browser-specific dropdown styling */
+select::-ms-expand {
+  display: none;
+}
+
+select:focus::-ms-value {
+  background-color: transparent;
+  color: white;
+}
+
+/* Ensure dropdown options are visible in all browsers */
+select optgroup {
+  background-color: #1e1b4b;
+  color: white;
+  font-weight: bold;
+}
+
+select optgroup option {
+  background-color: #312e81;
+  color: white;
+  padding-left: 20px;
+}
+
+/* Hover effects for better UX */
+select:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Focus state for select elements */
+select:focus {
+  outline: none;
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
 /* Glass morphism utilities */
 .glass-card {
   background: rgba(255, 255, 255, 0.05);

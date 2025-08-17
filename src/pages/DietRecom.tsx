@@ -285,7 +285,7 @@ const DietRecom: React.FC<DietRecomProps> = ({ user: _user }) => {
                     name="goal"
                     value={preferences.goal}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
+                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300 custom-select"
                   >
                     <option value="">Select your goal</option>
                     <option value="weight-loss">Weight Loss</option>
@@ -303,7 +303,7 @@ const DietRecom: React.FC<DietRecomProps> = ({ user: _user }) => {
                     name="dietType"
                     value={preferences.dietType}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
+                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300 custom-select"
                   >
                     <option value="">Select diet type</option>
                     <option value="balanced">Balanced</option>
@@ -323,7 +323,7 @@ const DietRecom: React.FC<DietRecomProps> = ({ user: _user }) => {
                     name="activityLevel"
                     value={preferences.activityLevel}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
+                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-green-500 focus:border-transparent transition-all duration-300 custom-select"
                   >
                     <option value="">Select activity level</option>
                     <option value="sedentary">Sedentary (desk job, no exercise)</option>
@@ -340,7 +340,7 @@ const DietRecom: React.FC<DietRecomProps> = ({ user: _user }) => {
                     name="mealCount"
                     value={preferences.mealCount}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
+                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300 custom-select"
                   >
                     <option value="3">3 Meals + Snacks</option>
                     <option value="4">4 Smaller Meals</option>
@@ -368,7 +368,7 @@ const DietRecom: React.FC<DietRecomProps> = ({ user: _user }) => {
                     name="budgetRange"
                     value={preferences.budgetRange}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300"
+                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300 custom-select"
                   >
                     <option value="">Select budget range</option>
                     <option value="low">Budget Friendly ($50-75/week)</option>

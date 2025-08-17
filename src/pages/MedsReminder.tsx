@@ -605,7 +605,7 @@ const MedsReminder: React.FC<MedsReminderProps> = ({ user: _user }) => {
                         name="frequency"
                         value={newMedication.frequency}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
+                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 custom-select"
                       >
                         <option value="">Select frequency</option>
                         <option value="Once daily">Once daily</option>
@@ -634,7 +634,7 @@ const MedsReminder: React.FC<MedsReminderProps> = ({ user: _user }) => {
                         name="category"
                         value={newMedication.category}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
+                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 custom-select"
                       >
                         <option value="">Select category</option>
                         <option value="Prescription">Prescription</option>

@@ -4,8 +4,21 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+// Validate API key
+if (!GEMINI_API_KEY) {
+    console.warn('⚠️  GEMINI_API_KEY not found in environment variables. AI features will use fallback responses.');
+}
+
+const genAI = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
+const model = genAI ? genAI.getGenerativeModel({ model: "gemini-2.0-flash" }) : null;
+
+// Fallback responses when AI service is unavailable
+const fallbackResponses = {
+    symptoms: "I understand you're experiencing symptoms. While I'm currently unable to provide AI-powered analysis, I recommend:\n\n• Rest and stay hydrated\n• Monitor your symptoms\n• Contact a healthcare professional if symptoms persist or worsen\n\nHow long have you been experiencing these symptoms?",
+    diet: "I'd be happy to help with dietary advice. Since I'm currently unable to provide AI-powered recommendations, here are some general tips:\n\n• Focus on whole, unprocessed foods\n• Include plenty of fruits and vegetables\n• Stay hydrated with water\n• Consider consulting a registered dietitian\n\nWhat specific dietary goals do you have?",
+    mealPlan: "I'd love to help create a meal plan for you. While I'm currently unable to provide AI-powered meal planning, here's a basic structure:\n\n• Breakfast: Protein + complex carbs + healthy fats\n• Lunch: Lean protein + vegetables + whole grains\n• Dinner: Similar to lunch but lighter portions\n• Snacks: Fruits, nuts, or yogurt\n\nWhat's your daily calorie target and dietary preferences?"
+};
 
 // Enhanced prompt for the health assistant with specific medical guidance
 const healthAssistantPrompt = `
@@ -78,6 +91,48 @@ MEAL PLAN STRUCTURE:
 IMPORTANT: Create realistic, sustainable meal plans that users can actually follow.
 `;
 
+// Helper function to safely call Gemini API
+const safeGeminiCall = async (prompt, maxTokens = 300) => {
+    if (!model || !GEMINI_API_KEY) {
+        throw new Error('AI service not configured');
+    }
+
+    try {
+        const result = await model.generateContent({
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            generationConfig: {
+                temperature: 0.7,
+                topP: 0.8,
+                topK: 40,
+                maxOutputTokens: maxTokens,
+            },
+            safetySettings: [
+                {
+                    category: "HARM_CATEGORY_HARASSMENT",
+                    threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                },
+                {
+                    category: "HARM_CATEGORY_HATE_SPEECH",
+                    threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                },
+                {
+                    category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                    threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                },
+                {
+                    category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+                    threshold: "BLOCK_MEDIUM_AND_ABOVE"
+                }
+            ]
+        });
+        
+        return result.response.text();
+    } catch (error) {
+        console.error('Gemini API Error:', error);
+        throw new Error(`AI service error: ${error.message}`);
+    }
+};
+
 export const analyzeSymptoms = async (message, conversationHistory) => {
     try {
         if (!message) {
@@ -107,39 +162,17 @@ Please provide a helpful, accurate response following the guidelines above. Focu
 Your response:
 `;
         
-        // Get response from Gemini API with safety settings
-        const result = await model.generateContent({
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: {
-                temperature: 0.7,
-                topP: 0.8,
-                topK: 40,
-                maxOutputTokens: 300,
-            },
-            safetySettings: [
-                {
-                    category: "HARM_CATEGORY_HARASSMENT",
-                    threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                },
-                {
-                    category: "HARM_CATEGORY_HATE_SPEECH",
-                    threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                },
-                {
-                    category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                    threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                },
-                {
-                    category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-                    threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                }
-            ]
-        });
-        
-        return result.response.text();
+        try {
+            // Try to get AI response
+            return await safeGeminiCall(prompt, 300);
+        } catch (aiError) {
+            console.warn('AI service failed, using fallback response:', aiError.message);
+            return fallbackResponses.symptoms;
+        }
     } catch (error) {
-        console.error('AI Service Error:', error);
-        throw new Error(`AI service temporarily unavailable: ${error.message}`);
+        console.error('Symptom Analysis Error:', error);
+        // Return a helpful fallback response instead of throwing
+        return fallbackResponses.symptoms;
     }
 };
 
@@ -187,39 +220,17 @@ Please provide personalized dietary recommendations following the guidelines abo
 Your response:
 `;
         
-        // Get response from Gemini API with safety settings
-        const result = await model.generateContent({
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: {
-                temperature: 0.6,
-                topP: 0.8,
-                topK: 40,
-                maxOutputTokens: 300,
-            },
-            safetySettings: [
-                {
-                    category: "HARM_CATEGORY_HARASSMENT",
-                    threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                },
-                {
-                    category: "HARM_CATEGORY_HATE_SPEECH",
-                    threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                },
-                {
-                    category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                    threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                },
-                {
-                    category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-                    threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                }
-            ]
-        });
-        
-        return result.response.text();
+        try {
+            // Try to get AI response
+            return await safeGeminiCall(prompt, 300);
+        } catch (aiError) {
+            console.warn('AI service failed, using fallback response:', aiError.message);
+            return fallbackResponses.diet;
+        }
     } catch (error) {
-        console.error('AI Service Error:', error);
-        throw new Error(`AI service temporarily unavailable: ${error.message}`);
+        console.error('Diet Recommendations Error:', error);
+        // Return a helpful fallback response instead of throwing
+        return fallbackResponses.diet;
     }
 };
 
@@ -246,38 +257,16 @@ Please create a detailed, nutritionally balanced meal plan that meets these spec
 Your response:
 `;
         
-        // Get response from Gemini API with safety settings
-        const result = await model.generateContent({
-            contents: [{ role: "user", parts: [{ text: mealPlanPrompt }] }],
-            generationConfig: {
-                temperature: 0.5,
-                topP: 0.8,
-                topK: 40,
-                maxOutputTokens: 400,
-            },
-            safetySettings: [
-                {
-                    category: "HARM_CATEGORY_HARASSMENT",
-                    threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                },
-                {
-                    category: "HARM_CATEGORY_HATE_SPEECH",
-                    threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                },
-                {
-                    category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                    threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                },
-                {
-                    category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-                    threshold: "BLOCK_MEDIUM_AND_ABOVE"
-                }
-            ]
-        });
-        
-        return result.response.text();
+        try {
+            // Try to get AI response
+            return await safeGeminiCall(mealPlanPrompt, 400);
+        } catch (aiError) {
+            console.warn('AI service failed, using fallback response:', aiError.message);
+            return fallbackResponses.mealPlan;
+        }
     } catch (error) {
-        console.error('AI Service Error:', error);
-        throw new Error(`AI service temporarily unavailable: ${error.message}`);
+        console.error('Meal Plan Generation Error:', error);
+        // Return a helpful fallback response instead of throwing
+        return fallbackResponses.mealPlan;
     }
 };

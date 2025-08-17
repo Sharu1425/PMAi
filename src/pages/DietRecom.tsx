@@ -4,14 +4,35 @@ import type React from "react"
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { FaFire, FaWeight } from "react-icons/fa"
-import { Utensils, Apple, Target, Heart, Zap, ChefHat, Clock, Star, Award } from "lucide-react"
+import { Utensils, Apple, Target, Heart, Zap, ChefHat, Clock, Star, Award, Bot, Info } from "lucide-react"
 import GlassCard from "@/components/ui/GlassCard"
 import AnimatedButton from "@/components/ui/AnimatedButton"
 import { useToast } from "@/hooks/useToast"
 import { aiAPI } from "@/utils/api"
 
-interface DietRecomProps {
-  user: any
+// Extended DietPlan interface for frontend use
+interface DietPlan {
+  totalCalories: number
+  macros: {
+    protein: number
+    carbs: number
+    fat: number
+    fiber: number
+  }
+  meals: {
+    [key: string]: Array<{
+      name: string
+      calories: number
+      protein: number
+      carbs: number
+      fat: number
+      fiber: number
+      prepTime: number
+      difficulty: string
+    }>
+  }
+  tips: string[]
+  shoppingList: string[]
 }
 
 interface Preferences {
@@ -24,37 +45,22 @@ interface Preferences {
   budgetRange: string
 }
 
-interface Meal {
-  name: string
-  calories: number
-  protein: number
-  carbs: number
-  fat: number
-  fiber: number
-  prepTime?: number
-  difficulty?: string
-  ingredients?: string[]
-  instructions?: string[]
-}
-
-interface DietPlan {
-  totalCalories: number
-  macros: {
-    protein: number
-    carbs: number
-    fat: number
-    fiber: number
-  }
-  meals: {
-    [key: string]: Meal[]
-  }
-  tips: string[]
-  shoppingList: string[]
+interface DietRecomProps {
+  user: any
 }
 
 const DietRecom: React.FC<DietRecomProps> = ({ user: _user }) => {
   // Helper function to validate meal data
-  const validateMeal = (meal: any): Meal => {
+  const validateMeal = (meal: any): {
+    name: string
+    calories: number
+    protein: number
+    carbs: number
+    fat: number
+    fiber: number
+    prepTime: number
+    difficulty: string
+  } => {
     return {
       name: typeof meal?.name === 'string' ? meal.name : 'Unknown Meal',
       calories: typeof meal?.calories === 'number' ? meal.calories : 0,
@@ -64,13 +70,20 @@ const DietRecom: React.FC<DietRecomProps> = ({ user: _user }) => {
       fiber: typeof meal?.fiber === 'number' ? meal.fiber : 0,
       prepTime: typeof meal?.prepTime === 'number' ? meal.prepTime : undefined,
       difficulty: typeof meal?.difficulty === 'string' ? meal.difficulty : undefined,
-      ingredients: Array.isArray(meal?.ingredients) ? meal.ingredients : undefined,
-      instructions: Array.isArray(meal?.instructions) ? meal.instructions : undefined,
     }
   }
 
   // Helper function to validate meals object
-  const validateMeals = (meals: any): { [key: string]: Meal[] } => {
+  const validateMeals = (meals: any): { [key: string]: {
+    name: string
+    calories: number
+    protein: number
+    carbs: number
+    fat: number
+    fiber: number
+    prepTime: number
+    difficulty: string
+  }[] } => {
     const defaultMeals = { Breakfast: [], Lunch: [], Dinner: [], Snack: [] }
     if (!meals || typeof meals !== 'object') return defaultMeals
     
@@ -117,6 +130,7 @@ const DietRecom: React.FC<DietRecomProps> = ({ user: _user }) => {
   })
   const [dietPlan, setDietPlan] = useState<DietPlan | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isAIGenerated, setIsAIGenerated] = useState(false)
   const [activeTab, setActiveTab] = useState<"plan" | "shopping" | "tips">("plan")
   const toast = useToast()
 
@@ -140,6 +154,8 @@ const DietRecom: React.FC<DietRecomProps> = ({ user: _user }) => {
         ...preferences,
         targetCalories: preferences.targetCalories ? Number(preferences.targetCalories) : undefined,
       }
+      
+      console.log("Sending diet preferences:", requestData)
       const response = await aiAPI.getDietRecommendations(requestData)
       
       if (!response.data) {
@@ -148,12 +164,27 @@ const DietRecom: React.FC<DietRecomProps> = ({ user: _user }) => {
       
       console.log("Raw API response:", response.data)
       
-      // Handle both string responses and structured data
+      // The API now returns structured data directly
       let validatedData: DietPlan
       
-      if (typeof response.data === 'string') {
-        // If the API returns a string (fallback response), use mock data
-        console.log("API returned string response, using mock data")
+      if (typeof response.data === 'object' && (response.data as any).totalCalories && (response.data as any).meals) {
+        // API returned structured data - validate and use it
+        console.log("API returned structured diet plan data")
+        const apiData = response.data as any // Cast to any to access the properties
+        
+        validatedData = {
+          totalCalories: validateTotalCalories(apiData.totalCalories),
+          macros: validateMacros(apiData.macros),
+          meals: validateMeals(apiData.meals),
+          tips: validateTips(apiData.tips),
+          shoppingList: validateShoppingList(apiData.shoppingList),
+        }
+        
+        console.log("Using AI-generated diet plan:", validatedData)
+        setIsAIGenerated(true)
+      } else {
+        // Fallback to mock data if API response is invalid
+        console.log("API response invalid, using fallback data")
         validatedData = {
           totalCalories: 2000,
           macros: {
@@ -274,147 +305,20 @@ const DietRecom: React.FC<DietRecomProps> = ({ user: _user }) => {
             "Sweet potatoes",
           ],
         }
-      } else {
-        // If the API returns structured data, validate it safely
-        const apiData = response.data as any // Use any to avoid type conflicts with API response
-        validatedData = {
-          totalCalories: validateTotalCalories(apiData?.totalCalories),
-          macros: validateMacros(apiData?.macros),
-          meals: validateMeals(apiData?.meals),
-          tips: validateTips(apiData?.tips),
-          shoppingList: validateShoppingList(apiData?.shoppingList),
-        }
+        setIsAIGenerated(false)
       }
       
-      console.log("Validated diet plan data:", validatedData)
+      console.log("Final validated diet plan data:", validatedData)
       
       setDietPlan(validatedData)
-      toast.success("Diet Plan Generated", "Your personalized diet plan is ready!")
+      if (isAIGenerated) {
+        toast.success("AI Diet Plan Generated", "Your personalized AI-generated diet plan is ready!")
+      } else {
+        toast.success("Diet Plan Ready", "Your diet plan is ready! (Using sample data)")
+      }
     } catch (error) {
       console.error("Error generating diet plan:", error)
-      // Use mock data as fallback
-      const mockPlan: DietPlan = {
-        totalCalories: 2000,
-        macros: {
-          protein: 120,
-          carbs: 250,
-          fat: 67,
-          fiber: 35,
-        },
-        meals: {
-          Breakfast: [
-            {
-              name: "Overnight Oats with Berries",
-              calories: 320,
-              protein: 12,
-              carbs: 54,
-              fat: 8,
-              fiber: 8,
-              prepTime: 5,
-              difficulty: "Easy",
-            },
-            {
-              name: "Greek Yogurt Parfait",
-              calories: 280,
-              protein: 20,
-              carbs: 35,
-              fat: 6,
-              fiber: 5,
-              prepTime: 10,
-              difficulty: "Easy",
-            },
-          ],
-          Lunch: [
-            {
-              name: "Grilled Chicken Quinoa Bowl",
-              calories: 450,
-              protein: 35,
-              carbs: 40,
-              fat: 15,
-              fiber: 6,
-              prepTime: 25,
-              difficulty: "Medium",
-            },
-            {
-              name: "Mediterranean Wrap",
-              calories: 420,
-              protein: 18,
-              carbs: 45,
-              fat: 20,
-              fiber: 8,
-              prepTime: 15,
-              difficulty: "Easy",
-            },
-          ],
-          Dinner: [
-            {
-              name: "Baked Salmon with Vegetables",
-              calories: 480,
-              protein: 40,
-              carbs: 25,
-              fat: 28,
-              fiber: 7,
-              prepTime: 30,
-              difficulty: "Medium",
-            },
-            {
-              name: "Lean Turkey Stir Fry",
-              calories: 420,
-              protein: 32,
-              carbs: 35,
-              fat: 18,
-              fiber: 6,
-              prepTime: 20,
-              difficulty: "Easy",
-            },
-          ],
-          Snack: [
-            {
-              name: "Mixed Nuts and Dried Fruit",
-              calories: 180,
-              protein: 6,
-              carbs: 12,
-              fat: 14,
-              fiber: 3,
-              prepTime: 1,
-              difficulty: "Easy",
-            },
-            {
-              name: "Apple with Almond Butter",
-              calories: 220,
-              protein: 8,
-              carbs: 25,
-              fat: 12,
-              fiber: 5,
-              prepTime: 2,
-              difficulty: "Easy",
-            },
-          ],
-        },
-        tips: [
-          "Stay hydrated by drinking at least 8 glasses of water daily",
-          "Eat slowly and mindfully to improve digestion",
-          "Include a variety of colorful vegetables in your meals",
-          "Plan your meals ahead to avoid unhealthy choices",
-          "Listen to your body's hunger and fullness cues",
-        ],
-        shoppingList: [
-          "Oats",
-          "Mixed berries",
-          "Greek yogurt",
-          "Quinoa",
-          "Chicken breast",
-          "Salmon fillets",
-          "Mixed vegetables",
-          "Almonds",
-          "Apples",
-          "Olive oil",
-          "Spinach",
-          "Sweet potatoes",
-        ],
-      }
-      setDietPlan(mockPlan)
-      toast.success("Diet Plan Generated", "Your personalized diet plan is ready!")
+      toast.error("Generation Failed", "Failed to generate diet plan. Please try again.")
     } finally {
       setIsGenerating(false)
     }
@@ -616,9 +520,22 @@ const DietRecom: React.FC<DietRecomProps> = ({ user: _user }) => {
               <div className="space-y-6">
                 {/* Plan Overview */}
                 <GlassCard glow>
-                  <div className="flex items-center mb-6">
-                    <Apple className="w-6 h-6 text-green-400 mr-3" />
-                    <h2 className="text-2xl font-bold text-white">Your Personalized Diet Plan</h2>
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center">
+                      <Apple className="w-6 h-6 text-green-400 mr-3" />
+                      <h2 className="text-2xl font-bold text-white">Your Personalized Diet Plan</h2>
+                    </div>
+                    {isAIGenerated ? (
+                      <div className="flex items-center space-x-2 px-3 py-2 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full text-white text-sm font-medium">
+                        <Bot className="w-4 h-4" />
+                        <span>AI Generated</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center space-x-2 px-3 py-2 bg-gradient-to-r from-gray-500 to-gray-600 rounded-full text-white text-sm font-medium">
+                        <Info className="w-4 h-4" />
+                        <span>Sample Data</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

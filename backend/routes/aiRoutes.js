@@ -99,7 +99,7 @@ router.post('/analyze-symptoms', aiLimiter, async (req, res) => {
 });
 
 // Endpoint for diet recommendations
-// Frontend expects: POST preferences object and response { data: string }
+// Frontend expects: POST preferences object and response { data: DietPlan object }
 router.post('/diet-recommendations', aiLimiter, async (req, res) => {
     try {
         const { message, conversationHistory, userProfile, ...preferences } = req.body;
@@ -113,29 +113,100 @@ router.post('/diet-recommendations', aiLimiter, async (req, res) => {
             });
         }
         
-        const prompt = message || JSON.stringify(preferences);
+        // Use preferences object directly, or create from message
+        const dietPreferences = Object.keys(preferences).length > 0 ? preferences : { goal: message };
         
         try {
-            const reply = await getDietRecommendations(prompt, conversationHistory, userProfile);
+            const dietPlan = await getDietRecommendations(dietPreferences, conversationHistory, userProfile);
             
-            if (!reply || typeof reply !== 'string') {
-                throw new Error('AI service returned invalid response format');
+            // Validate the response structure
+            if (!dietPlan || typeof dietPlan !== 'object' || !dietPlan.totalCalories || !dietPlan.meals) {
+                throw new Error('AI service returned invalid diet plan structure');
             }
             
             return res.json({ 
-                data: reply, 
+                data: dietPlan, 
                 success: true,
-                message: 'Diet recommendations generated successfully'
+                message: 'Diet plan generated successfully'
             });
         } catch (aiError) {
             console.error('AI service error:', aiError);
-            // Return a helpful fallback response instead of failing
-            const fallbackResponse = "I'd be happy to help with dietary advice. Since I'm currently unable to provide AI-powered recommendations, here are some general tips: focus on whole, unprocessed foods, include plenty of fruits and vegetables, stay hydrated with water, and consider consulting a registered dietitian. What specific dietary goals do you have?";
+            // Return a structured fallback diet plan instead of failing
+            const fallbackPlan = {
+                totalCalories: 2000,
+                macros: {
+                    protein: 120,
+                    carbs: 250,
+                    fat: 67,
+                    fiber: 35
+                },
+                meals: {
+                    Breakfast: [
+                        {
+                            name: "Overnight Oats with Berries",
+                            calories: 320,
+                            protein: 12,
+                            carbs: 54,
+                            fat: 8,
+                            fiber: 8,
+                            prepTime: 5,
+                            difficulty: "Easy"
+                        }
+                    ],
+                    Lunch: [
+                        {
+                            name: "Grilled Chicken Quinoa Bowl",
+                            calories: 450,
+                            protein: 35,
+                            carbs: 40,
+                            fat: 15,
+                            fiber: 6,
+                            prepTime: 25,
+                            difficulty: "Medium"
+                        }
+                    ],
+                    Dinner: [
+                        {
+                            name: "Baked Salmon with Vegetables",
+                            calories: 480,
+                            protein: 40,
+                            carbs: 25,
+                            fat: 28,
+                            fiber: 7,
+                            prepTime: 30,
+                            difficulty: "Medium"
+                        }
+                    ],
+                    Snack: [
+                        {
+                            name: "Mixed Nuts and Dried Fruit",
+                            calories: 180,
+                            protein: 6,
+                            carbs: 12,
+                            fat: 14,
+                            fiber: 3,
+                            prepTime: 1,
+                            difficulty: "Easy"
+                        }
+                    ]
+                },
+                tips: [
+                    "Stay hydrated by drinking at least 8 glasses of water daily",
+                    "Eat slowly and mindfully to improve digestion",
+                    "Include a variety of colorful vegetables in your meals",
+                    "Plan your meals ahead to avoid unhealthy choices",
+                    "Listen to your body's hunger and fullness cues"
+                ],
+                shoppingList: [
+                    "Oats", "Mixed berries", "Greek yogurt", "Quinoa", "Chicken breast",
+                    "Salmon fillets", "Mixed vegetables", "Almonds", "Apples", "Olive oil"
+                ]
+            };
             
             return res.json({ 
-                data: fallbackResponse, 
+                data: fallbackPlan, 
                 success: true,
-                message: 'Recommendations generated with fallback response'
+                message: 'Diet plan generated with fallback data'
             });
         }
     } catch (error) {

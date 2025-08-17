@@ -176,10 +176,10 @@ Your response:
     }
 };
 
-export const getDietRecommendations = async (message, conversationHistory, userProfile) => {
+export const getDietRecommendations = async (preferences, conversationHistory, userProfile) => {
     try {
-        if (!message) {
-            throw new Error('No message provided');
+        if (!preferences) {
+            throw new Error('No preferences provided');
         }
         
         // Create a context from previous conversation
@@ -206,32 +206,173 @@ export const getDietRecommendations = async (message, conversationHistory, userP
 IMPORTANT: Strictly avoid any foods mentioned in allergies or dietary restrictions.`;
         }
         
-        // Construct the enhanced prompt for Gemini
-        const prompt = `
-${dietPlannerPrompt}
+        // Enhanced prompt specifically for structured diet plan generation
+        const structuredDietPrompt = `
+You are a certified nutrition expert creating personalized diet plans. You MUST respond with ONLY a valid JSON object in the exact format specified below.
 
+CRITICAL REQUIREMENTS:
+1. RESPONSE FORMAT: Return ONLY valid JSON - no text before or after
+2. STRUCTURE: Follow the exact JSON schema provided
+3. PERSONALIZATION: Consider user's goals, diet type, and preferences
+4. NUTRITIONAL ACCURACY: Ensure proper calorie and macronutrient balance
+5. PRACTICALITY: Suggest realistic, accessible foods
+6. ALLERGIES: Strictly avoid any foods mentioned in allergies
+
+REQUIRED JSON STRUCTURE:
+{
+  "totalCalories": number,
+  "macros": {
+    "protein": number,
+    "carbs": number,
+    "fat": number,
+    "fiber": number
+  },
+  "meals": {
+    "Breakfast": [
+      {
+        "name": "string",
+        "calories": number,
+        "protein": number,
+        "carbs": number,
+        "fat": number,
+        "fiber": number,
+        "prepTime": number,
+        "difficulty": "Easy|Medium|Hard"
+      }
+    ],
+    "Lunch": [same structure as Breakfast],
+    "Dinner": [same structure as Breakfast],
+    "Snack": [same structure as Breakfast]
+  },
+  "tips": ["string", "string", "string", "string", "string"],
+  "shoppingList": ["string", "string", "string", "string", "string", "string", "string", "string", "string", "string", "string", "string"]
+}
+
+USER PREFERENCES: ${JSON.stringify(preferences)}
 ${userProfileContext ? `${userProfileContext}\n\n` : ''}
 ${conversationContext ? `Previous conversation context:\n${conversationContext}\n\n` : ''}
 
-USER'S DIETARY REQUEST: ${message}
-
-Please provide personalized dietary recommendations following the guidelines above. Consider the user's profile information and provide specific, actionable advice.
-
-Your response:
-`;
+Generate a personalized diet plan based on the user's preferences. Return ONLY the JSON object with no additional text or explanation.`;
         
         try {
             // Try to get AI response
-            return await safeGeminiCall(prompt, 300);
+            const aiResponse = await safeGeminiCall(structuredDietPrompt, 800);
+            
+            // Try to parse the response as JSON
+            try {
+                const parsedResponse = JSON.parse(aiResponse);
+                
+                // Validate the structure
+                if (parsedResponse.totalCalories && parsedResponse.meals && parsedResponse.macros) {
+                    return parsedResponse;
+                } else {
+                    throw new Error('Invalid JSON structure');
+                }
+            } catch (parseError) {
+                console.warn('AI response is not valid JSON, using fallback:', parseError.message);
+                // Return a structured fallback diet plan
+                return generateFallbackDietPlan(preferences);
+            }
         } catch (aiError) {
-            console.warn('AI service failed, using fallback response:', aiError.message);
-            return fallbackResponses.diet;
+            console.warn('AI service failed, using fallback diet plan:', aiError.message);
+            return generateFallbackDietPlan(preferences);
         }
     } catch (error) {
         console.error('Diet Recommendations Error:', error);
-        // Return a helpful fallback response instead of throwing
-        return fallbackResponses.diet;
+        return generateFallbackDietPlan(preferences);
     }
+};
+
+// Generate a fallback diet plan when AI fails
+const generateFallbackDietPlan = (preferences) => {
+    const { goal = 'general health', dietType = 'balanced', targetCalories = 2000 } = preferences;
+    
+    // Calculate macros based on preferences
+    let protein, carbs, fat;
+    if (dietType === 'high-protein') {
+        protein = Math.round(targetCalories * 0.3 / 4);
+        carbs = Math.round(targetCalories * 0.4 / 4);
+        fat = Math.round(targetCalories * 0.3 / 9);
+    } else if (dietType === 'low-carb') {
+        protein = Math.round(targetCalories * 0.3 / 4);
+        carbs = Math.round(targetCalories * 0.2 / 4);
+        fat = Math.round(targetCalories * 0.5 / 9);
+    } else {
+        protein = Math.round(targetCalories * 0.25 / 4);
+        carbs = Math.round(targetCalories * 0.5 / 4);
+        fat = Math.round(targetCalories * 0.25 / 9);
+    }
+    
+    return {
+        totalCalories: targetCalories,
+        macros: {
+            protein,
+            carbs,
+            fat,
+            fiber: 35
+        },
+        meals: {
+            Breakfast: [
+                {
+                    name: "Overnight Oats with Berries",
+                    calories: Math.round(targetCalories * 0.16),
+                    protein: Math.round(protein * 0.1),
+                    carbs: Math.round(carbs * 0.22),
+                    fat: Math.round(fat * 0.12),
+                    fiber: 8,
+                    prepTime: 5,
+                    difficulty: "Easy"
+                }
+            ],
+            Lunch: [
+                {
+                    name: "Grilled Chicken Quinoa Bowl",
+                    calories: Math.round(targetCalories * 0.225),
+                    protein: Math.round(protein * 0.3),
+                    carbs: Math.round(carbs * 0.16),
+                    fat: Math.round(fat * 0.22),
+                    fiber: 6,
+                    prepTime: 25,
+                    difficulty: "Medium"
+                }
+            ],
+            Dinner: [
+                {
+                    name: "Baked Salmon with Vegetables",
+                    calories: Math.round(targetCalories * 0.24),
+                    protein: Math.round(protein * 0.2),
+                    carbs: Math.round(carbs * 0.1),
+                    fat: Math.round(fat * 0.42),
+                    fiber: 7,
+                    prepTime: 30,
+                    difficulty: "Medium"
+                }
+            ],
+            Snack: [
+                {
+                    name: "Mixed Nuts and Dried Fruit",
+                    calories: Math.round(targetCalories * 0.09),
+                    protein: Math.round(protein * 0.05),
+                    carbs: Math.round(carbs * 0.05),
+                    fat: Math.round(fat * 0.21),
+                    fiber: 3,
+                    prepTime: 1,
+                    difficulty: "Easy"
+                }
+            ]
+        },
+        tips: [
+            "Stay hydrated by drinking at least 8 glasses of water daily",
+            "Eat slowly and mindfully to improve digestion",
+            "Include a variety of colorful vegetables in your meals",
+            "Plan your meals ahead to avoid unhealthy choices",
+            "Listen to your body's hunger and fullness cues"
+        ],
+        shoppingList: [
+            "Oats", "Mixed berries", "Quinoa", "Chicken breast", "Salmon fillets",
+            "Mixed vegetables", "Almonds", "Olive oil", "Spinach", "Sweet potatoes"
+        ]
+    };
 };
 
 // New specialized function for meal planning

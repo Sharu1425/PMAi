@@ -52,22 +52,6 @@ interface DietPlan {
   shoppingList: string[]
 }
 
-// Interface for API response (can be partial)
-interface DietPlanAPIResponse {
-  totalCalories?: number
-  macros?: {
-    protein?: number
-    carbs?: number
-    fat?: number
-    fiber?: number
-  }
-  meals?: {
-    [key: string]: Meal[]
-  }
-  tips?: string[]
-  shoppingList?: string[]
-}
-
 const DietRecom: React.FC<DietRecomProps> = ({ user: _user }) => {
   // Helper function to validate meal data
   const validateMeal = (meal: any): Meal => {
@@ -291,14 +275,14 @@ const DietRecom: React.FC<DietRecomProps> = ({ user: _user }) => {
           ],
         }
       } else {
-        // If the API returns structured data, validate it
-        const apiData = response.data as DietPlanAPIResponse
+        // If the API returns structured data, validate it safely
+        const apiData = response.data as any // Use any to avoid type conflicts with API response
         validatedData = {
-          totalCalories: validateTotalCalories(apiData.totalCalories),
-          macros: validateMacros(apiData.macros),
-          meals: validateMeals(apiData.meals),
-          tips: validateTips(apiData.tips),
-          shoppingList: validateShoppingList(apiData.shoppingList),
+          totalCalories: validateTotalCalories(apiData?.totalCalories),
+          macros: validateMacros(apiData?.macros),
+          meals: validateMeals(apiData?.meals),
+          tips: validateTips(apiData?.tips),
+          shoppingList: validateShoppingList(apiData?.shoppingList),
         }
       }
       

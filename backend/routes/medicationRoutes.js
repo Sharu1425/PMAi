@@ -17,19 +17,41 @@ const medicationLimiter = rateLimit({
 router.get("/", auth, medicationLimiter, async (req, res) => {
   try {
     // TODO: Implement medication model and database operations
-    // For now, return mock data
+    // For now, return mock data that matches frontend expectations
     res.json({
       success: true,
       data: [
         {
           id: "1",
-          name: "Aspirin",
-          dosage: "100mg",
+          name: "Vitamin D",
+          dosage: "1000 IU",
           frequency: "Once daily",
-          time: "09:00",
-          instructions: "Take with food",
+          time: "08:00",
+          startDate: "2024-01-01",
+          endDate: "2024-12-31",
+          instructions: "Take with breakfast",
+          reminders: true,
+          taken: false,
+          category: "Vitamin",
           isActive: true,
           createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: "2",
+          name: "Omega-3",
+          dosage: "500mg",
+          frequency: "Twice daily",
+          time: "08:00,20:00",
+          startDate: "2024-01-01",
+          endDate: "2024-06-30",
+          instructions: "Take with meals",
+          reminders: true,
+          taken: true,
+          category: "Supplement",
+          isActive: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         }
       ]
     })
@@ -45,7 +67,17 @@ router.get("/", auth, medicationLimiter, async (req, res) => {
 // Add new medication
 router.post("/", auth, medicationLimiter, async (req, res) => {
   try {
-    const { name, dosage, frequency, time, instructions } = req.body
+    const { 
+      name, 
+      dosage, 
+      frequency, 
+      time, 
+      startDate, 
+      endDate, 
+      instructions, 
+      reminders, 
+      category 
+    } = req.body
     
     if (!name || !dosage || !frequency || !time) {
       return res.status(400).json({
@@ -61,9 +93,15 @@ router.post("/", auth, medicationLimiter, async (req, res) => {
       dosage,
       frequency,
       time,
+      startDate: startDate || new Date().toISOString().split('T')[0],
+      endDate: endDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       instructions: instructions || "",
+      reminders: reminders !== undefined ? reminders : true,
+      category: category || "General",
+      taken: false,
       isActive: true,
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     }
 
     res.status(201).json({
@@ -162,9 +200,16 @@ router.patch("/:id/taken", auth, medicationLimiter, async (req, res) => {
     }
 
     // TODO: Implement medication taken status update in database
+    // For now, return a mock updated medication
+    const updatedMedication = {
+      id,
+      taken,
+      updatedAt: new Date().toISOString(),
+    }
 
     res.json({
       success: true,
+      data: updatedMedication,
       message: `Medication marked as ${taken ? "taken" : "not taken"}`,
     })
   } catch (error) {

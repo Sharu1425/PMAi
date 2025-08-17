@@ -18,24 +18,18 @@ import {
 import GlassCard from "@/components/ui/GlassCard"
 import AnimatedButton from "@/components/ui/AnimatedButton"
 import { useToast } from "@/hooks/useToast"
+import { medicationAPI } from "@/utils/api"
+import type { Medication as BaseMedication } from "@/types"
 
 interface MedsReminderProps {
   user: any
 }
 
-interface Medication {
-  id: number
-  name: string
-  dosage: string
-  frequency: string
-  time: string
-  startDate: string
-  endDate: string
-  instructions?: string
-  reminders: boolean
-  taken: boolean
+// Extended Medication interface for frontend use
+interface Medication extends BaseMedication {
   category?: string
   color?: string
+  updatedAt?: string
 }
 
 interface NewMedication {
@@ -53,7 +47,7 @@ interface NewMedication {
 const MedsReminder: React.FC<MedsReminderProps> = ({ user: _user }) => {
   const [medications, setMedications] = useState<Medication[]>([
     {
-      id: 1,
+      id: "1",
       name: "Vitamin D",
       dosage: "1000 IU",
       frequency: "Once daily",
@@ -64,9 +58,10 @@ const MedsReminder: React.FC<MedsReminderProps> = ({ user: _user }) => {
       taken: false,
       category: "Vitamin",
       color: "from-yellow-500 to-orange-500",
+      createdAt: new Date().toISOString(),
     },
     {
-      id: 2,
+      id: "2",
       name: "Omega-3",
       dosage: "500mg",
       frequency: "Twice daily",
@@ -77,9 +72,10 @@ const MedsReminder: React.FC<MedsReminderProps> = ({ user: _user }) => {
       taken: true,
       category: "Supplement",
       color: "from-blue-500 to-cyan-500",
+      createdAt: new Date().toISOString(),
     },
     {
-      id: 3,
+      id: "3",
       name: "Metformin",
       dosage: "500mg",
       frequency: "Twice daily",
@@ -90,6 +86,7 @@ const MedsReminder: React.FC<MedsReminderProps> = ({ user: _user }) => {
       taken: false,
       category: "Prescription",
       color: "from-purple-500 to-violet-500",
+      createdAt: new Date().toISOString(),
     },
   ])
 
@@ -110,6 +107,12 @@ const MedsReminder: React.FC<MedsReminderProps> = ({ user: _user }) => {
   const [activeTab, setActiveTab] = useState<"today" | "all" | "history">("today")
   const toast = useToast()
 
+  // Load medications from API on component mount
+  useEffect(() => {
+    loadMedications()
+  }, [])
+
+  // Update current time every minute
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date())
@@ -118,6 +121,136 @@ const MedsReminder: React.FC<MedsReminderProps> = ({ user: _user }) => {
     return () => clearInterval(timer)
   }, [])
 
+  const loadMedications = async () => {
+    console.log("Loading medications from API...")
+    try {
+      const response = await medicationAPI.getMedications()
+      console.log("Load medications response:", response)
+      
+      if (response.success && response.data) {
+        // Add colors to medications if they don't have them
+        const medicationsWithColors = response.data.map((med: Medication) => ({
+          ...med,
+          color: med.color || getRandomColor(),
+        }))
+        console.log("Setting medications with colors:", medicationsWithColors)
+        setMedications(medicationsWithColors)
+      } else {
+        console.log("No medications data in response or response not successful")
+        // Keep the sample data if API fails
+      }
+    } catch (error) {
+      console.error("Error loading medications:", error)
+      toast.error("Load Failed", "Failed to load medications. Using sample data.")
+      // Keep the sample data if API fails
+    }
+  }
+
+  const addMedication = async () => {
+    console.log("Add medication function called")
+    console.log("Form data:", newMedication)
+    
+    if (!newMedication.name || !newMedication.dosage || !newMedication.time) {
+      console.log("Validation failed - missing required fields")
+      toast.warning("Missing Information", "Please fill in all required fields")
+      return
+    }
+
+    // Set default dates if not provided
+    const medicationData = {
+      name: newMedication.name,
+      dosage: newMedication.dosage,
+      frequency: newMedication.frequency || "Once daily",
+      time: newMedication.time,
+      startDate: newMedication.startDate || new Date().toISOString().split('T')[0],
+      endDate: newMedication.endDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      instructions: newMedication.instructions || "",
+      reminders: newMedication.reminders,
+      category: newMedication.category || "General",
+      taken: false,
+    }
+
+    console.log("Sending medication data:", medicationData)
+
+    try {
+      const response = await medicationAPI.addMedication(medicationData)
+      console.log("API response:", response)
+      
+      if (response.success && response.data) {
+        const newMed = {
+          ...response.data,
+          color: getRandomColor(),
+        }
+        
+        console.log("Adding new medication to state:", newMed)
+        setMedications((prev) => [...prev, newMed])
+        setNewMedication({
+          name: "",
+          dosage: "",
+          frequency: "",
+          time: "",
+          startDate: "",
+          endDate: "",
+          instructions: "",
+          reminders: true,
+          category: "",
+        })
+        setShowAddForm(false)
+        toast.success("Medication Added", "Your medication has been added successfully!")
+      } else {
+        console.log("API response not successful:", response)
+        throw new Error("Failed to add medication")
+      }
+    } catch (error) {
+      console.error("Error adding medication:", error)
+      toast.error("Add Failed", "Failed to add medication. Please try again.")
+    }
+  }
+
+  const deleteMedication = async (id: string) => {
+    try {
+      const response = await medicationAPI.deleteMedication(id)
+      if (response.success) {
+        setMedications((prev) => prev.filter((med) => med.id !== id))
+        toast.success("Medication Deleted", "Medication has been removed from your list")
+      } else {
+        throw new Error("Failed to delete medication")
+      }
+    } catch (error) {
+      console.error("Error deleting medication:", error)
+      toast.error("Delete Failed", "Failed to delete medication. Please try again.")
+    }
+  }
+
+  const toggleTaken = async (id: string) => {
+    try {
+      const medication = medications.find(med => med.id === id)
+      if (!medication) return
+
+      const newTaken = !medication.taken
+      const response = await medicationAPI.markAsTaken(id, newTaken)
+      
+      if (response.success) {
+        setMedications((prev) =>
+          prev.map((med) => {
+            if (med.id === id) {
+              if (newTaken) {
+                toast.success("Medication Taken", `${med.name} marked as taken`)
+              }
+              return { ...med, taken: newTaken }
+            }
+            return med
+          })
+        )
+      } else {
+        throw new Error("Failed to update medication")
+      }
+    } catch (error) {
+      console.error("Error updating medication:", error)
+      toast.error("Update Failed", "Failed to update medication status. Please try again.")
+    }
+  }
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target
     const checked = (e.target as HTMLInputElement).checked
@@ -125,35 +258,6 @@ const MedsReminder: React.FC<MedsReminderProps> = ({ user: _user }) => {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }))
-  }
-
-  const addMedication = () => {
-    if (!newMedication.name || !newMedication.dosage || !newMedication.time) {
-      toast.warning("Missing Information", "Please fill in all required fields")
-      return
-    }
-
-    const medication: Medication = {
-      ...newMedication,
-      id: Date.now(),
-      taken: false,
-      color: getRandomColor(),
-    }
-
-    setMedications((prev) => [...prev, medication])
-    setNewMedication({
-      name: "",
-      dosage: "",
-      frequency: "",
-      time: "",
-      startDate: "",
-      endDate: "",
-      instructions: "",
-      reminders: true,
-      category: "",
-    })
-    setShowAddForm(false)
-    toast.success("Medication Added", "Your medication has been added successfully!")
   }
 
   const getRandomColor = () => {
@@ -168,31 +272,11 @@ const MedsReminder: React.FC<MedsReminderProps> = ({ user: _user }) => {
     return colors[Math.floor(Math.random() * colors.length)]
   }
 
-  const deleteMedication = (id: number) => {
-    setMedications((prev) => prev.filter((med) => med.id !== id))
-    toast.success("Medication Deleted", "Medication has been removed from your list")
-  }
-
-  const toggleTaken = (id: number) => {
-    setMedications((prev) =>
-      prev.map((med) => {
-        if (med.id === id) {
-          const newTaken = !med.taken
-          if (newTaken) {
-            toast.success("Medication Taken", `${med.name} marked as taken`)
-          }
-          return { ...med, taken: newTaken }
-        }
-        return med
-      })
-    )
-  }
-
   const getTodaysMedications = () => {
     const today = new Date().toISOString().split("T")[0]
     return medications.filter((med) => {
       const startDate = new Date(med.startDate)
-      const endDate = new Date(med.endDate)
+      const endDate = med.endDate ? new Date(med.endDate) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // Default to 1 year from now if no end date
       const todayDate = new Date(today)
       return todayDate >= startDate && todayDate <= endDate
     })
@@ -646,11 +730,22 @@ const MedsReminder: React.FC<MedsReminderProps> = ({ user: _user }) => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Start Date</label>
+                      <label className="text-sm font-medium text-gray-300 mb-2">Start Date</label>
                       <input
                         type="date"
                         name="startDate"
                         value={newMedication.startDate}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-gray-300 mb-2">End Date</label>
+                      <input
+                        type="date"
+                        name="endDate"
+                        value={newMedication.endDate}
                         onChange={handleInputChange}
                         className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
                       />

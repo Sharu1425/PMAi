@@ -9,7 +9,8 @@
     "dev": "nodemon server.js",
     "test": "jest",
     "test-connection": "node test-connection.js",
-    "test-api": "node test-api.js"
+    "test-api": "node test-api.js",
+    "test-medication": "node test-medication-api.js"
   },
   "dependencies": {
     "express": "^4.18.2",

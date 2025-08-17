@@ -91,6 +91,12 @@ const SymptomAnalyser: React.FC<SymptomAnalyserProps> = ({ user: _user }) => {
       
       // Parse the AI response and create a structured result
       const aiResponse = response.data as string
+      
+      // Validate that we got a meaningful response
+      if (typeof aiResponse !== 'string' || aiResponse.trim().length === 0) {
+        throw new Error("Invalid response format from AI service")
+      }
+      
       const mockResult: AnalysisResult = {
         possibleConditions: ["General Symptom Analysis"],
         confidence: 85,
@@ -124,7 +130,32 @@ const SymptomAnalyser: React.FC<SymptomAnalyserProps> = ({ user: _user }) => {
       toast.success("Analysis Complete", "Your symptom analysis is ready!")
     } catch (error) {
       console.error("Error analyzing symptoms:", error)
-      toast.error("Analysis Failed", "Failed to analyze symptoms. Please try again.")
+      
+      // Provide a more helpful error message
+      let errorMessage = "Failed to analyze symptoms. Please try again."
+      if (error instanceof Error) {
+        errorMessage = error.message
+      } else if (typeof error === 'string') {
+        errorMessage = error
+      }
+      
+      toast.error("Analysis Failed", errorMessage)
+      
+      // Set a fallback analysis result
+      const fallbackResult: AnalysisResult = {
+        possibleConditions: ["General Symptom Analysis"],
+        confidence: 70,
+        urgencyLevel: "medium",
+        analysis: "I'm having trouble analyzing your symptoms right now. Please try again in a moment, or consider consulting a healthcare professional for immediate concerns.",
+        recommendations: [
+          "Try refreshing the page and analyzing again",
+          "Check your internet connection",
+          "Contact a healthcare professional if symptoms are severe",
+          "Monitor your symptoms and note any changes"
+        ]
+      }
+      
+      setAnalysis(fallbackResult)
     } finally {
       setIsAnalyzing(false)
     }

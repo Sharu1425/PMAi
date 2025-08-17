@@ -12,8 +12,38 @@ const auth = async (req, res, next) => {
       })
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret')
-    const user = await User.findById(decoded.id)
+    // Add better error handling for JWT verification
+    let decoded
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret')
+    } catch (jwtError) {
+      console.error("JWT verification failed:", jwtError.message)
+      if (jwtError.name === "JsonWebTokenError") {
+        return res.status(401).json({
+          error: "Access denied",
+          message: "Invalid token",
+        })
+      }
+      if (jwtError.name === "TokenExpiredError") {
+        return res.status(401).json({
+          error: "Access denied",
+          message: "Token expired",
+        })
+      }
+      throw jwtError
+    }
+
+    // Add better error handling for user lookup
+    let user
+    try {
+      user = await User.findById(decoded.id)
+    } catch (dbError) {
+      console.error("Database error in auth middleware:", dbError)
+      return res.status(500).json({
+        error: "Database error",
+        message: "Failed to verify user",
+      })
+    }
 
     if (!user || !user.isActive) {
       return res.status(401).json({
@@ -25,21 +55,10 @@ const auth = async (req, res, next) => {
     req.user = decoded
     next()
   } catch (error) {
-    if (error.name === "JsonWebTokenError") {
-      return res.status(401).json({
-        error: "Access denied",
-        message: "Invalid token",
-      })
-    }
-
-    if (error.name === "TokenExpiredError") {
-      return res.status(401).json({
-        error: "Access denied",
-        message: "Token expired",
-      })
-    }
-
     console.error("Auth middleware error:", error)
+    console.error("Error stack:", error.stack)
+    
+    // Don't expose internal error details to client
     res.status(500).json({
       error: "Authentication failed",
       message: "Internal server error",

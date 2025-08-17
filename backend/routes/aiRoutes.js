@@ -64,13 +64,30 @@ router.post('/analyze-symptoms', aiLimiter, async (req, res) => {
         }
         
         const input = Array.isArray(symptoms) ? symptoms.join(', ') : message;
-        const reply = await analyzeSymptoms(input, conversationHistory);
         
-        return res.json({ 
-            data: reply, 
-            success: true,
-            message: 'Symptom analysis completed successfully'
-        });
+        try {
+            const reply = await analyzeSymptoms(input, conversationHistory);
+            
+            if (!reply || typeof reply !== 'string') {
+                throw new Error('AI service returned invalid response format');
+            }
+            
+            return res.json({ 
+                data: reply, 
+                success: true,
+                message: 'Symptom analysis completed successfully'
+            });
+        } catch (aiError) {
+            console.error('AI service error:', aiError);
+            // Return a helpful fallback response instead of failing
+            const fallbackResponse = "I understand you're experiencing symptoms. While I'm currently unable to provide AI-powered analysis, I recommend monitoring your symptoms and consulting a healthcare professional if they persist or worsen. What specific symptoms are you experiencing?";
+            
+            return res.json({ 
+                data: fallbackResponse, 
+                success: true,
+                message: 'Analysis completed with fallback response'
+            });
+        }
     } catch (error) {
         console.error('Error analyzing symptoms:', error);
         return res.status(500).json({ 
@@ -97,13 +114,30 @@ router.post('/diet-recommendations', aiLimiter, async (req, res) => {
         }
         
         const prompt = message || JSON.stringify(preferences);
-        const reply = await getDietRecommendations(prompt, conversationHistory, userProfile);
         
-        return res.json({ 
-            data: reply, 
-            success: true,
-            message: 'Diet recommendations generated successfully'
-        });
+        try {
+            const reply = await getDietRecommendations(prompt, conversationHistory, userProfile);
+            
+            if (!reply || typeof reply !== 'string') {
+                throw new Error('AI service returned invalid response format');
+            }
+            
+            return res.json({ 
+                data: reply, 
+                success: true,
+                message: 'Diet recommendations generated successfully'
+            });
+        } catch (aiError) {
+            console.error('AI service error:', aiError);
+            // Return a helpful fallback response instead of failing
+            const fallbackResponse = "I'd be happy to help with dietary advice. Since I'm currently unable to provide AI-powered recommendations, here are some general tips: focus on whole, unprocessed foods, include plenty of fruits and vegetables, stay hydrated with water, and consider consulting a registered dietitian. What specific dietary goals do you have?";
+            
+            return res.json({ 
+                data: fallbackResponse, 
+                success: true,
+                message: 'Recommendations generated with fallback response'
+            });
+        }
     } catch (error) {
         console.error('Error generating diet recommendations:', error);
         return res.status(500).json({ 

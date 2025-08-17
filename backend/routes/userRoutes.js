@@ -139,19 +139,34 @@ router.post("/login", authLimiter, validateLogin, async (req, res) => {
 // Get user profile
 router.get("/profile", auth, async (req, res) => {
   try {
+    console.log("🔍 Profile request for user ID:", req.user.id)
+    
     const user = await User.findById(req.user.id).select(
       "-password -faceDescriptor -emailVerificationToken -passwordResetToken -passwordResetExpires"
     )
+    
     if (!user) {
+      console.log("❌ User not found for ID:", req.user.id)
       return res.status(404).json({
         error: "User not found",
         message: "User profile not found",
       })
     }
 
+    console.log("✅ Profile retrieved successfully for user:", user.email)
     res.json({ success: true, user })
   } catch (error) {
-    console.error("Profile fetch error:", error)
+    console.error("❌ Profile fetch error:", error)
+    console.error("❌ Error stack:", error.stack)
+    
+    // Check if it's a MongoDB connection error
+    if (error.name === 'MongoNetworkError' || error.name === 'MongoServerSelectionError') {
+      return res.status(503).json({
+        error: "Database connection error",
+        message: "Unable to connect to database. Please try again later.",
+      })
+    }
+    
     res.status(500).json({
       error: "Profile fetch failed",
       message: "Internal server error",
@@ -162,6 +177,9 @@ router.get("/profile", auth, async (req, res) => {
 // Update user profile
 router.put("/profile", auth, async (req, res) => {
   try {
+    console.log("🔍 Profile update request for user ID:", req.user.id)
+    console.log("🔍 Update data:", req.body)
+    
     const allowedUpdates = [
       "name",
       "age",
@@ -187,6 +205,8 @@ router.put("/profile", auth, async (req, res) => {
       }
     })
 
+    console.log("🔍 Filtered updates:", updates)
+
     const user = await User.findByIdAndUpdate(
       req.user.id,
       { $set: updates },
@@ -196,15 +216,36 @@ router.put("/profile", auth, async (req, res) => {
     )
 
     if (!user) {
+      console.log("❌ User not found for update, ID:", req.user.id)
       return res.status(404).json({
         error: "User not found",
         message: "User profile not found",
       })
     }
 
+    console.log("✅ Profile updated successfully for user:", user.email)
     res.json({ success: true, message: "Profile updated successfully", user })
   } catch (error) {
-    console.error("Profile update error:", error)
+    console.error("❌ Profile update error:", error)
+    console.error("❌ Error stack:", error.stack)
+    
+    // Check if it's a validation error
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        error: "Validation failed",
+        message: "Please check your input data",
+        details: error.message
+      })
+    }
+    
+    // Check if it's a MongoDB connection error
+    if (error.name === 'MongoNetworkError' || error.name === 'MongoServerSelectionError') {
+      return res.status(503).json({
+        error: "Database connection error",
+        message: "Unable to connect to database. Please try again later.",
+      })
+    }
+    
     res.status(500).json({
       error: "Profile update failed",
       message: "Internal server error",

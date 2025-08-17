@@ -1,308 +1,161 @@
-# 🐛 PMAi Troubleshooting Guide
+# PMAi Troubleshooting Guide
 
-This guide helps you resolve common issues with the PMAi application.
+## Common Errors and Solutions
 
-## 🚨 Common Error: 500 Internal Server Error on AI Endpoints
+### 1. 500 Server Error on `/users/profile` Endpoint
 
-### Symptoms
-- Frontend shows "Error analyzing symptoms: m" or "Error sending chat message: m"
-- Browser console shows "Failed to load resource: the server responded with a status of 500"
-- AI features return generic error messages
+**Error:** `pmai-3rq4.onrender.com/users/profile:1 Failed to load resource: the server responded with a status of 500`
 
-### Root Causes & Solutions
+**Possible Causes:**
+- MongoDB connection issues
+- JWT token validation failures
+- Missing environment variables
+- Database authentication problems
 
-#### 1. **Missing or Invalid Gemini API Key**
+**Solutions:**
 
-**Problem**: `GEMINI_API_KEY` environment variable is not set or invalid.
-
-**Symptoms**:
-- AI endpoints return 500 errors
-- Console shows "API key not valid" errors
-- Fallback responses are used instead of AI-generated content
-
-**Solutions**:
-
-**Option A: Set Environment Variable**
+#### Check Database Connection
 ```bash
-# Backend directory
-export GEMINI_API_KEY=your-actual-gemini-api-key
-# or add to .env file
-echo "GEMINI_API_KEY=your-actual-gemini-api-key" >> .env
+cd backend
+npm run test-connection
 ```
 
-**Option B: Get New API Key**
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Navigate to "APIs & Services" > "Credentials"
-3. Create new API key or regenerate existing one
-4. Update your environment variable
-
-**Option C: Verify API Key Format**
-- API key should be a long string (usually 39 characters)
-- No spaces or special characters at the beginning/end
-- Key should start with "AI" for Gemini API
-
-#### 2. **Gemini API Not Enabled**
-
-**Problem**: Gemini API is not enabled in Google Cloud project.
-
-**Solution**:
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Navigate to "APIs & Services" > "Library"
-3. Search for "Gemini API"
-4. Click "Enable" if not already enabled
-
-#### 3. **API Quota Exceeded**
-
-**Problem**: You've hit the rate limit or quota for Gemini API.
-
-**Symptoms**:
-- Errors about quota limits
-- 429 status codes
-- "Quota exceeded" messages
-
-**Solutions**:
-1. Check your Google Cloud billing
-2. Monitor API usage in Google Cloud Console
-3. Implement proper rate limiting in your app
-4. Consider upgrading to paid tier if needed
-
-#### 4. **Network/Firewall Issues**
-
-**Problem**: Server can't reach Google's API endpoints.
-
-**Symptoms**:
-- Timeout errors
-- Network connection failures
-- Intermittent 500 errors
-
-**Solutions**:
-1. Check server's internet connectivity
-2. Verify firewall rules allow outbound HTTPS
-3. Test with `curl` or `wget` to Google APIs
-4. Check proxy settings if applicable
-
-## 🔧 Testing & Diagnosis
-
-### 1. **Check AI Service Health**
-
-Test the AI service health endpoint:
-```bash
-curl https://your-domain.com/api/ai/health
+#### Verify Environment Variables
+Ensure these are set in your `.env` file:
+```env
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/pmai
+JWT_SECRET=your-secret-key
+NODE_ENV=production
 ```
 
-**Expected Response**:
-```json
+#### Check Server Logs
+Look for these specific error messages:
+- `MongoNetworkError` - Database connection issue
+- `JsonWebTokenError` - JWT token problem
+- `ValidationError` - Data validation failure
+
+#### Test Health Endpoint
+```bash
+curl https://pmai-3rq4.onrender.com/health
+```
+
+### 2. TypeError: Cannot read properties of undefined (reading 'Breakfast')
+
+**Error:** `TypeError: Cannot read properties of undefined (reading 'Breakfast')`
+
+**Cause:** The diet plan API is returning data in an unexpected format, causing the frontend to fail when trying to access meal properties.
+
+**Solutions:**
+
+#### Frontend Fix Applied
+The DietRecom component now includes:
+- Better error handling for API responses
+- Fallback to mock data when API fails
+- Validation of API response structure
+- Graceful degradation when data is missing
+
+#### Backend Fix Applied
+The AI routes now include:
+- Better error handling for AI service failures
+- Fallback responses when AI service is unavailable
+- Input validation and sanitization
+- Proper error messages instead of cryptic "m" errors
+
+### 3. Error analyzing symptoms: m
+
+**Error:** `Error analyzing symptoms: m`
+
+**Cause:** The AI service is returning an error response that's not being properly handled, resulting in truncated error messages.
+
+**Solutions:**
+
+#### Backend Improvements
+- Enhanced error handling in AI routes
+- Fallback responses when AI service fails
+- Better error logging and debugging
+- Graceful degradation for AI features
+
+#### Frontend Improvements
+- Better error message display
+- Fallback analysis results
+- User-friendly error handling
+- Retry mechanisms for failed requests
+
+## Debugging Steps
+
+### 1. Check Server Status
+```bash
+# Test the health endpoint
+curl https://pmai-3rq4.onrender.com/health
+
+# Expected response:
 {
-  "success": true,
-  "data": {
-    "status": "operational",
-    "geminiConfigured": true,
-    "features": {
-      "symptomAnalysis": "available",
-      "dietRecommendations": "available",
-      "mealPlanning": "available",
-      "chat": "available"
-    }
+  "status": "OK",
+  "database": {
+    "status": "connected",
+    "readyState": 1
   }
 }
 ```
 
-### 2. **Test Individual AI Endpoints**
-
-**Symptom Analysis**:
+### 2. Test Database Connection
 ```bash
-curl -X POST https://your-domain.com/api/ai/analyze-symptoms \
-  -H "Content-Type: application/json" \
-  -d '{"symptoms": ["headache"]}'
+cd backend
+npm run test-connection
 ```
 
-**Chat Endpoint**:
+### 3. Check Environment Variables
 ```bash
-curl -X POST https://your-domain.com/api/ai/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Hello, how are you?"}'
+# In your deployment environment, verify:
+echo $MONGODB_URI
+echo $JWT_SECRET
+echo $NODE_ENV
 ```
 
-### 3. **Check Server Logs**
+### 4. Monitor Server Logs
+Look for these patterns:
+- `🔍 Profile request for user ID:` - Successful profile requests
+- `❌ Profile fetch error:` - Profile fetch failures
+- `❌ Database connection error:` - Database issues
+- `❌ JWT verification failed:` - Authentication problems
 
-Look for these log messages:
-- `⚠️  GEMINI_API_KEY not found in environment variables`
-- `AI service failed, using fallback response`
-- `Gemini API Error: [GoogleGenerativeAI Error]`
+## Prevention Measures
 
-### 4. **Environment Variable Check**
+### 1. Environment Variable Validation
+The server now validates critical environment variables on startup.
 
-Verify environment variables are set correctly:
-```bash
-# Check if variable exists
-echo $GEMINI_API_KEY
+### 2. Graceful Degradation
+- AI features fall back to helpful responses when the service is unavailable
+- Frontend components handle missing data gracefully
+- User experience remains functional even during partial failures
 
-# Check .env file
-cat .env | grep GEMINI_API_KEY
+### 3. Comprehensive Error Logging
+- Detailed error messages with stack traces
+- Categorized error types for easier debugging
+- Request/response logging for API endpoints
 
-# Check in Node.js
-node -e "console.log('API Key:', process.env.GEMINI_API_KEY ? 'Set' : 'Not Set')"
-```
+### 4. Health Monitoring
+- Database connection status monitoring
+- Memory usage tracking
+- Uptime and performance metrics
 
-## 🛠️ Fixes & Workarounds
+## Getting Help
 
-### 1. **Immediate Fix: Use Fallback Responses**
+If you continue to experience issues:
 
-The AI service now includes fallback responses that work even when the Gemini API is unavailable:
+1. **Check the server logs** for detailed error information
+2. **Test the health endpoint** to verify system status
+3. **Run the connection test** to diagnose database issues
+4. **Verify environment variables** are properly configured
+5. **Check MongoDB Atlas** for connection and authentication issues
 
-- **Symptom Analysis**: General health guidance and recommendations
-- **Diet Recommendations**: Basic nutritional advice and tips
-- **Meal Planning**: Structured meal plan templates
+## Recent Fixes Applied
 
-### 2. **Environment Variable Setup**
-
-**Development**:
-```env
-# .env file
-GEMINI_API_KEY=your-development-api-key
-NODE_ENV=development
-```
-
-**Production**:
-```env
-# Production environment
-GEMINI_API_KEY=your-production-api-key
-NODE_ENV=production
-```
-
-### 3. **API Key Validation**
-
-Add this to your startup script:
-```javascript
-if (!process.env.GEMINI_API_KEY) {
-    console.warn('⚠️  GEMINI_API_KEY not found. AI features will use fallback responses.');
-} else {
-    console.log('✅ Gemini API configured successfully');
-}
-```
-
-### 4. **Error Handling Improvements**
-
-The AI service now:
-- Catches API errors gracefully
-- Returns helpful fallback responses
-- Logs errors for debugging
-- Never crashes with 500 errors
-
-## 📊 Monitoring & Alerts
-
-### 1. **Health Check Endpoints**
-
-Monitor these endpoints:
-- `/health` - General server health
-- `/api/ai/health` - AI service status
-- `/api/ai/analyze-symptoms` - Symptom analysis functionality
-
-### 2. **Log Monitoring**
-
-Watch for these log patterns:
-- `AI service failed, using fallback response`
-- `Gemini API Error`
-- `API key not valid`
-
-### 3. **Performance Metrics**
-
-Track:
-- Response times for AI endpoints
-- Error rates
-- Fallback response usage
-- API quota consumption
-
-## 🚀 Production Deployment Checklist
-
-### Before Deploying
-
-- [ ] Set `GEMINI_API_KEY` in production environment
-- [ ] Enable Gemini API in Google Cloud Console
-- [ ] Verify API quotas and billing
-- [ ] Test AI endpoints with production API key
-- [ ] Monitor error logs after deployment
-
-### After Deploying
-
-- [ ] Check AI service health endpoint
-- [ ] Test symptom analysis functionality
-- [ ] Verify chat endpoint works
-- [ ] Monitor for 500 errors
-- [ ] Check fallback response usage
-
-## 🔍 Debugging Commands
-
-### 1. **Test API Key Validity**
-
-```bash
-# Test if API key can reach Gemini API
-curl -H "Authorization: Bearer YOUR_API_KEY" \
-  "https://generativelanguage.googleapis.com/v1beta/models"
-```
-
-### 2. **Check Environment Variables**
-
-```bash
-# List all environment variables
-env | grep -i gemini
-
-# Check specific variable
-echo "API Key: ${GEMINI_API_KEY:0:10}..."
-```
-
-### 3. **Test Network Connectivity**
-
-```bash
-# Test connection to Google APIs
-curl -I https://generativelanguage.googleapis.com
-
-# Test DNS resolution
-nslookup generativelanguage.googleapis.com
-```
-
-## 📞 Getting Help
-
-### 1. **Check Logs First**
-
-Always check server logs before asking for help:
-```bash
-# View recent logs
-tail -f logs/app.log
-
-# Search for AI-related errors
-grep -i "ai\|gemini\|error" logs/app.log
-```
-
-### 2. **Gather Information**
-
-When reporting issues, include:
-- Error messages from browser console
-- Server logs
-- Environment (development/production)
-- API key status (without exposing the actual key)
-- Steps to reproduce
-
-### 3. **Common Solutions**
-
-Most AI service issues are resolved by:
-1. Setting the correct `GEMINI_API_KEY`
-2. Enabling Gemini API in Google Cloud
-3. Checking API quotas and billing
-4. Verifying network connectivity
-
-## 🎯 Quick Fix Summary
-
-**For 500 errors on AI endpoints:**
-
-1. **Check API Key**: Verify `GEMINI_API_KEY` is set and valid
-2. **Enable API**: Ensure Gemini API is enabled in Google Cloud
-3. **Check Quotas**: Verify you haven't exceeded API limits
-4. **Test Health**: Use `/api/ai/health` endpoint to diagnose
-5. **Monitor Logs**: Check server logs for specific error messages
-
-**The AI service now includes fallback responses, so even if the Gemini API fails, users will still get helpful responses instead of errors.**
-
----
-
-**Need more help?** Check the main documentation or create an issue in the repository.
+- ✅ Enhanced auth middleware error handling
+- ✅ Improved user profile endpoint error handling
+- ✅ Fixed diet plan data validation in frontend
+- ✅ Added fallback responses for AI service failures
+- ✅ Enhanced error logging and debugging
+- ✅ Added comprehensive health check endpoint
+- ✅ Created database connection test script
+- ✅ Improved frontend error handling and user experience

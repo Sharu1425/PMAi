@@ -140,20 +140,7 @@ export const aiAPI = {
     return response.data
   },
 
-  chatWithAI: async (message: string, context?: any): Promise<ApiResponse<{ message: string }>> => {
-    const response = await api.post("/api/ai/chat", { message, context })
-    return response.data
-  },
 
-  generateMealPlan: async (preferences: {
-    calories: number
-    dietType: string
-    allergies?: string[]
-    meals: number
-  }): Promise<ApiResponse<DietPlan>> => {
-    const response = await api.post("/api/ai/meal-plan", preferences)
-    return response.data
-  },
 
   // New history endpoints
   getSymptomHistory: async (): Promise<ApiResponse<Symptom[]>> => {

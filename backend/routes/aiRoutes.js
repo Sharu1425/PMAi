@@ -1,7 +1,7 @@
 import express from "express"
 import rateLimit from "express-rate-limit"
 import { auth } from "../middleware/auth.js"
-import { analyzeSymptoms, getDietRecommendations, chatWithAI, generateMealPlan } from "../services/aiService.js"
+import { analyzeSymptoms, getDietRecommendations } from "../services/aiService.js"
 import Symptom from "../models/symptom.js"
 import DietPlan from "../models/dietPlan.js"
 import AIChat from "../models/aiChat.js"

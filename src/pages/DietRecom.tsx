@@ -93,7 +93,25 @@ const DietRecom: React.FC<DietRecomProps> = ({ user: _user }) => {
         throw new Error("No diet plan data received")
       }
       
-      setDietPlan(response.data as unknown as DietPlan)
+      console.log("Raw API response:", response.data)
+      
+      // Ensure the data structure is consistent
+      const validatedData: DietPlan = {
+        totalCalories: response.data.totalCalories || 2000,
+        macros: {
+          protein: response.data.macros?.protein || 120,
+          carbs: response.data.macros?.carbs || 250,
+          fat: response.data.macros?.fat || 67,
+          fiber: response.data.macros?.fiber || 35,
+        },
+        meals: response.data.meals || {},
+        tips: response.data.tips || [],
+        shoppingList: response.data.shoppingList || [],
+      }
+      
+      console.log("Validated diet plan data:", validatedData)
+      
+      setDietPlan(validatedData)
       toast.success("Diet Plan Generated", "Your personalized diet plan is ready!")
     } catch (error) {
       console.error("Error generating diet plan:", error)
@@ -226,6 +244,11 @@ const DietRecom: React.FC<DietRecomProps> = ({ user: _user }) => {
   }
 
   const mealTypes = ["Breakfast", "Lunch", "Dinner", "Snack"]
+  
+  // Filter meal types to only show those that have data
+  const availableMealTypes = dietPlan ? mealTypes.filter(type => 
+    dietPlan.meals && dietPlan.meals[type] && Array.isArray(dietPlan.meals[type]) && dietPlan.meals[type].length > 0
+  ) : []
 
   const getDifficultyColor = (difficulty?: string) => {
     switch (difficulty?.toLowerCase()) {
@@ -424,22 +447,22 @@ const DietRecom: React.FC<DietRecomProps> = ({ user: _user }) => {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     <div className="text-center p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all duration-300">
                       <FaFire className="w-8 h-8 text-orange-400 mx-auto mb-2" />
-                      <div className="text-2xl font-bold text-white">{dietPlan.totalCalories}</div>
+                      <div className="text-2xl font-bold text-white">{dietPlan.totalCalories || 0}</div>
                       <div className="text-gray-400 text-sm">Daily Calories</div>
                     </div>
                     <div className="text-center p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all duration-300">
                       <FaWeight className="w-8 h-8 text-blue-400 mx-auto mb-2" />
-                      <div className="text-2xl font-bold text-white">{dietPlan.macros?.protein}g</div>
+                      <div className="text-2xl font-bold text-white">{dietPlan.macros?.protein || 0}g</div>
                       <div className="text-gray-400 text-sm">Protein</div>
                     </div>
                     <div className="text-center p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all duration-300">
                       <Utensils className="w-8 h-8 text-purple-400 mx-auto mb-2" />
-                      <div className="text-2xl font-bold text-white">{dietPlan.macros?.carbs}g</div>
+                      <div className="text-2xl font-bold text-white">{dietPlan.macros?.carbs || 0}g</div>
                       <div className="text-gray-400 text-sm">Carbs</div>
                     </div>
                     <div className="text-center p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all duration-300">
                       <Heart className="w-8 h-8 text-pink-400 mx-auto mb-2" />
-                      <div className="text-2xl font-bold text-white">{dietPlan.macros?.fat}g</div>
+                      <div className="text-2xl font-bold text-white">{dietPlan.macros?.fat || 0}g</div>
                       <div className="text-gray-400 text-sm">Fat</div>
                     </div>
                   </div>
@@ -480,7 +503,8 @@ const DietRecom: React.FC<DietRecomProps> = ({ user: _user }) => {
                         transition={{ duration: 0.3 }}
                       >
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {mealTypes.map((mealType, index) => (
+                          {availableMealTypes.length > 0 ? (
+                            availableMealTypes.map((mealType, index) => (
                             <motion.div
                               key={mealType}
                               variants={itemVariants}
@@ -496,39 +520,52 @@ const DietRecom: React.FC<DietRecomProps> = ({ user: _user }) => {
                                   {mealType}
                                 </h3>
                                 <div className="space-y-4">
-                                  {dietPlan.meals[mealType]?.map((meal, mealIndex) => (
-                                    <div
-                                      key={mealIndex}
-                                      className="p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all duration-300"
-                                    >
-                                      <div className="flex justify-between items-start mb-3">
-                                        <h4 className="font-semibold text-white text-lg">{meal.name}</h4>
-                                        <div className="flex items-center space-x-2">
-                                          <span className="text-orange-400 font-bold">{meal.calories} cal</span>
-                                          {meal.difficulty && (
-                                            <span className={`text-xs ${getDifficultyColor(meal.difficulty)}`}>
-                                              {meal.difficulty}
-                                            </span>
-                                          )}
+                                  {dietPlan.meals && dietPlan.meals[mealType] && Array.isArray(dietPlan.meals[mealType]) ? (
+                                    dietPlan.meals[mealType].map((meal, mealIndex) => (
+                                      <div
+                                        key={mealIndex}
+                                        className="p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all duration-300"
+                                      >
+                                        <div className="flex justify-between items-start mb-3">
+                                          <h4 className="font-semibold text-white text-lg">{meal.name}</h4>
+                                          <div className="flex items-center space-x-2">
+                                            <span className="text-orange-400 font-bold">{meal.calories} cal</span>
+                                            {meal.difficulty && (
+                                              <span className={`text-xs ${getDifficultyColor(meal.difficulty)}`}>
+                                                {meal.difficulty}
+                                              </span>
+                                            )}
+                                          </div>
                                         </div>
-                                      </div>
-                                      <div className="grid grid-cols-3 gap-3 text-sm text-gray-300 mb-3">
-                                        <span>P: {meal.protein}g</span>
-                                        <span>C: {meal.carbs}g</span>
-                                        <span>F: {meal.fat}g</span>
-                                      </div>
-                                      {meal.prepTime && (
-                                        <div className="flex items-center text-gray-400 text-sm">
-                                          <Clock className="w-3 h-3 mr-1" />
-                                          <span>{meal.prepTime} min prep</span>
+                                        <div className="grid grid-cols-3 gap-3 text-sm text-gray-300 mb-3">
+                                          <span>P: {meal.protein}g</span>
+                                          <span>C: {meal.carbs}g</span>
+                                          <span>F: {meal.fat}g</span>
                                         </div>
-                                      )}
+                                        {meal.prepTime && (
+                                          <div className="flex items-center text-gray-400 text-sm">
+                                            <Clock className="w-3 h-3 mr-1" />
+                                            <span>{meal.prepTime} min prep</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <div className="p-4 bg-white/5 rounded-xl border border-white/10 text-center">
+                                      <p className="text-gray-400">No meals planned for {mealType}</p>
                                     </div>
-                                  ))}
+                                  )}
                                 </div>
                               </GlassCard>
                             </motion.div>
-                          ))}
+                          ))
+                          ) : (
+                            <div className="col-span-full text-center py-8">
+                              <Utensils className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                              <p className="text-gray-400 text-lg">No meal plan data available</p>
+                              <p className="text-gray-500 text-sm">Please try generating a new diet plan</p>
+                            </div>
+                          )}
                         </div>
                       </motion.div>
                     )}
@@ -542,18 +579,25 @@ const DietRecom: React.FC<DietRecomProps> = ({ user: _user }) => {
                         transition={{ duration: 0.3 }}
                       >
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {dietPlan.shoppingList?.map((item, index) => (
-                            <motion.div
-                              key={index}
-                              initial={{ opacity: 0, scale: 0.9 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              transition={{ delay: index * 0.05 }}
-                              className="flex items-center space-x-3 p-3 bg-white/5 rounded-xl border border-white/10"
-                            >
-                              <Utensils className="w-4 h-4 text-green-400" />
-                              <span className="text-white">{item}</span>
-                            </motion.div>
-                          ))}
+                          {dietPlan.shoppingList && Array.isArray(dietPlan.shoppingList) && dietPlan.shoppingList.length > 0 ? (
+                            dietPlan.shoppingList.map((item, index) => (
+                              <motion.div
+                                key={index}
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: index * 0.05 }}
+                                className="flex items-center space-x-3 p-3 bg-white/5 rounded-xl border border-white/10"
+                              >
+                                <Utensils className="w-4 h-4 text-green-400" />
+                                <span className="text-white">{item}</span>
+                              </motion.div>
+                            ))
+                          ) : (
+                            <div className="col-span-full text-center py-8">
+                              <Utensils className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                              <p className="text-gray-400">No shopping list available</p>
+                            </div>
+                          )}
                         </div>
                       </motion.div>
                     )}
@@ -567,18 +611,25 @@ const DietRecom: React.FC<DietRecomProps> = ({ user: _user }) => {
                         transition={{ duration: 0.3 }}
                       >
                         <div className="space-y-4">
-                          {dietPlan.tips?.map((tip, index) => (
-                            <motion.div
-                              key={index}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: index * 0.1 }}
-                              className="flex items-start space-x-3 p-4 bg-white/5 rounded-xl border border-white/10"
-                            >
-                              <Award className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" />
-                              <p className="text-gray-300">{tip}</p>
-                            </motion.div>
-                          ))}
+                          {dietPlan.tips && Array.isArray(dietPlan.tips) && dietPlan.tips.length > 0 ? (
+                            dietPlan.tips.map((tip, index) => (
+                              <motion.div
+                                key={index}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: index * 0.1 }}
+                                className="flex items-start space-x-3 p-4 bg-white/5 rounded-xl border border-white/10"
+                              >
+                                <Award className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" />
+                                <p className="text-gray-300">{tip}</p>
+                              </motion.div>
+                            ))
+                          ) : (
+                            <div className="text-center py-8">
+                              <Award className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                              <p className="text-gray-400">No tips available</p>
+                            </div>
+                          )}
                         </div>
                       </motion.div>
                     )}

@@ -30,7 +30,7 @@ interface Meal {
   protein: number
   carbs: number
   fat: number
-  fiber?: number
+  fiber: number
   prepTime?: number
   difficulty?: string
   ingredients?: string[]
@@ -49,10 +49,79 @@ interface DietPlan {
     [key: string]: Meal[]
   }
   tips: string[]
+  shoppingList: string[]
+}
+
+// Interface for API response (can be partial)
+interface DietPlanAPIResponse {
+  totalCalories?: number
+  macros?: {
+    protein?: number
+    carbs?: number
+    fat?: number
+    fiber?: number
+  }
+  meals?: {
+    [key: string]: Meal[]
+  }
+  tips?: string[]
   shoppingList?: string[]
 }
 
 const DietRecom: React.FC<DietRecomProps> = ({ user: _user }) => {
+  // Helper function to validate meal data
+  const validateMeal = (meal: any): Meal => {
+    return {
+      name: typeof meal?.name === 'string' ? meal.name : 'Unknown Meal',
+      calories: typeof meal?.calories === 'number' ? meal.calories : 0,
+      protein: typeof meal?.protein === 'number' ? meal.protein : 0,
+      carbs: typeof meal?.carbs === 'number' ? meal.carbs : 0,
+      fat: typeof meal?.fat === 'number' ? meal.fat : 0,
+      fiber: typeof meal?.fiber === 'number' ? meal.fiber : 0,
+      prepTime: typeof meal?.prepTime === 'number' ? meal.prepTime : undefined,
+      difficulty: typeof meal?.difficulty === 'string' ? meal.difficulty : undefined,
+      ingredients: Array.isArray(meal?.ingredients) ? meal.ingredients : undefined,
+      instructions: Array.isArray(meal?.instructions) ? meal.instructions : undefined,
+    }
+  }
+
+  // Helper function to validate meals object
+  const validateMeals = (meals: any): { [key: string]: Meal[] } => {
+    const defaultMeals = { Breakfast: [], Lunch: [], Dinner: [], Snack: [] }
+    if (!meals || typeof meals !== 'object') return defaultMeals
+    
+    return {
+      Breakfast: Array.isArray(meals.Breakfast) ? meals.Breakfast.map(validateMeal) : [],
+      Lunch: Array.isArray(meals.Lunch) ? meals.Lunch.map(validateMeal) : [],
+      Dinner: Array.isArray(meals.Dinner) ? meals.Dinner.map(validateMeal) : [],
+      Snack: Array.isArray(meals.Snack) ? meals.Snack.map(validateMeal) : [],
+    }
+  }
+
+  // Helper function to validate macros
+  const validateMacros = (macros: any): { protein: number; carbs: number; fat: number; fiber: number } => {
+    return {
+      protein: typeof macros?.protein === 'number' ? macros.protein : 120,
+      carbs: typeof macros?.carbs === 'number' ? macros.carbs : 250,
+      fat: typeof macros?.fat === 'number' ? macros.fat : 67,
+      fiber: typeof macros?.fiber === 'number' ? macros.fiber : 35,
+    }
+  }
+
+  // Helper function to validate totalCalories
+  const validateTotalCalories = (calories: any): number => {
+    return typeof calories === 'number' ? calories : 2000
+  }
+
+  // Helper function to validate tips
+  const validateTips = (tips: any): string[] => {
+    return Array.isArray(tips) ? tips.filter(tip => typeof tip === 'string') : []
+  }
+
+  // Helper function to validate shoppingList
+  const validateShoppingList = (shoppingList: any): string[] => {
+    return Array.isArray(shoppingList) ? shoppingList.filter(item => typeof item === 'string') : []
+  }
   const [preferences, setPreferences] = useState<Preferences>({
     goal: "",
     dietType: "",
@@ -95,18 +164,14 @@ const DietRecom: React.FC<DietRecomProps> = ({ user: _user }) => {
       
       console.log("Raw API response:", response.data)
       
-      // Ensure the data structure is consistent
+      // Ensure the data structure is consistent with proper type checking
+      const apiData = response.data as DietPlanAPIResponse
       const validatedData: DietPlan = {
-        totalCalories: response.data.totalCalories || 2000,
-        macros: {
-          protein: response.data.macros?.protein || 120,
-          carbs: response.data.macros?.carbs || 250,
-          fat: response.data.macros?.fat || 67,
-          fiber: response.data.macros?.fiber || 35,
-        },
-        meals: response.data.meals || {},
-        tips: response.data.tips || [],
-        shoppingList: response.data.shoppingList || [],
+        totalCalories: validateTotalCalories(apiData.totalCalories),
+        macros: validateMacros(apiData.macros),
+        meals: validateMeals(apiData.meals),
+        tips: validateTips(apiData.tips),
+        shoppingList: validateShoppingList(apiData.shoppingList),
       }
       
       console.log("Validated diet plan data:", validatedData)

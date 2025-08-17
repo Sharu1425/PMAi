@@ -1,10 +1,10 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { FaFire, FaWeight } from "react-icons/fa"
-import { Utensils, Apple, Target, Heart, Zap, ChefHat, Clock, Star, Award, Bot, Info } from "lucide-react"
+import { FaFire, FaWeight, FaHistory } from "react-icons/fa"
+import { Utensils, Apple, Target, Heart, Zap, ChefHat, Clock, Star, Award, Bot, Info, Calendar } from "lucide-react"
 import GlassCard from "@/components/ui/GlassCard"
 import AnimatedButton from "@/components/ui/AnimatedButton"
 import { useToast } from "@/hooks/useToast"
@@ -343,6 +343,30 @@ const DietRecom: React.FC<DietRecomProps> = ({ user: _user }) => {
         return "text-gray-400"
     }
   }
+
+  const formatDate = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString();
+  };
+
+  const [showHistory, setShowHistory] = useState(false);
+  const [dietPlanHistory, setDietPlanHistory] = useState<any[]>([]);
+
+  const fetchHistory = async () => {
+    try {
+      const response = await aiAPI.getDietPlanHistory();
+      if (response.success && response.data) {
+        setDietPlanHistory(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching diet history:", error);
+      toast.error("Failed to load history", "Could not fetch your diet plan history.");
+    }
+  };
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
 
   
 
@@ -753,6 +777,91 @@ const DietRecom: React.FC<DietRecomProps> = ({ user: _user }) => {
                 </div>
               </GlassCard>
             )}
+          </motion.div>
+
+          {/* Diet Plan History Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="mt-12"
+          >
+            <GlassCard>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center">
+                  <FaHistory className="w-6 h-6 text-purple-400 mr-3" />
+                  <h2 className="text-2xl font-bold text-white">Recent Diet Plan History</h2>
+                </div>
+                <AnimatedButton
+                  onClick={() => setShowHistory(!showHistory)}
+                  variant="outline"
+                  size="sm"
+                >
+                  {showHistory ? "Hide" : "Show"} History
+                </AnimatedButton>
+              </div>
+
+              {showHistory && (
+                <div className="space-y-4">
+                  {dietPlanHistory.length > 0 ? (
+                    dietPlanHistory.map((record, index) => (
+                      <motion.div
+                        key={record.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all duration-300"
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <Calendar className="w-4 h-4 text-gray-400" />
+                              <span className="text-gray-400 text-sm">
+                                {formatDate(record.createdAt)}
+                              </span>
+                              {record.isAIGenerated && (
+                                <span className="px-2 py-1 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full text-xs text-white">
+                                  AI Generated
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-2 mb-3">
+                              {record.preferences.goal && (
+                                <span className="px-2 py-1 bg-green-500/20 border border-green-500/30 rounded-full text-xs text-green-300">
+                                  {record.preferences.goal}
+                                </span>
+                              )}
+                              {record.preferences.dietType && (
+                                <span className="px-2 py-1 bg-blue-500/20 border border-blue-500/30 rounded-full text-xs text-blue-300">
+                                  {record.preferences.dietType}
+                                </span>
+                              )}
+                              {record.preferences.targetCalories && (
+                                <span className="px-2 py-1 bg-orange-500/20 border border-orange-500/30 rounded-full text-xs text-orange-300">
+                                  {record.preferences.targetCalories} cal
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-gray-300 text-sm">
+                              <strong>Calories:</strong> {record.plan.totalCalories} | 
+                              <strong> Protein:</strong> {record.plan.macros.protein}g | 
+                              <strong> Carbs:</strong> {record.plan.macros.carbs}g | 
+                              <strong> Fat:</strong> {record.plan.macros.fat}g
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <FaHistory className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-400">No diet plan history available</p>
+                      <p className="text-gray-500 text-sm">Your diet plans will appear here</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </GlassCard>
           </motion.div>
         </div>
       </div>

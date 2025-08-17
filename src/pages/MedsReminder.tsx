@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { FaEdit, FaTrash, FaCheck, FaTimes, FaPlus } from "react-icons/fa"
+import { FaEdit, FaTrash, FaCheck, FaTimes, FaPlus, FaHistory } from "react-icons/fa"
 import {
   Pill,
   Clock,
@@ -110,6 +110,7 @@ const MedsReminder: React.FC<MedsReminderProps> = ({ user: _user }) => {
   // Load medications from API on component mount
   useEffect(() => {
     loadMedications()
+    loadMedicationHistory()
   }, [])
 
   // Update current time every minute
@@ -120,6 +121,17 @@ const MedsReminder: React.FC<MedsReminderProps> = ({ user: _user }) => {
 
     return () => clearInterval(timer)
   }, [])
+
+  const loadMedicationHistory = async () => {
+    try {
+      const response = await medicationAPI.getMedicationHistory()
+      if (response.success && response.data) {
+        setMedicationHistory(response.data)
+      }
+    } catch (error) {
+      console.error("Error loading medication history:", error)
+    }
+  }
 
   const loadMedications = async () => {
     console.log("Loading medications from API...")
@@ -344,6 +356,14 @@ const MedsReminder: React.FC<MedsReminderProps> = ({ user: _user }) => {
     hidden: { opacity: 0, x: -20 },
     visible: { opacity: 1, x: 0 },
     exit: { opacity: 0, x: 20 },
+  }
+
+  const [showHistory, setShowHistory] = useState(false)
+  const [medicationHistory, setMedicationHistory] = useState<any[]>([])
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString("en-US", { month: "numeric", day: "numeric", hour: "numeric", minute: "numeric" })
   }
 
   return (
@@ -793,6 +813,111 @@ const MedsReminder: React.FC<MedsReminderProps> = ({ user: _user }) => {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Medication History Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+          className="mt-12"
+        >
+          <GlassCard>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center">
+                <FaHistory className="w-6 h-6 text-purple-400 mr-3" />
+                <h2 className="text-2xl font-bold text-white">Medication History</h2>
+              </div>
+              <AnimatedButton
+                onClick={() => setShowHistory(!showHistory)}
+                variant="outline"
+                size="sm"
+              >
+                {showHistory ? "Hide" : "Show"} History
+              </AnimatedButton>
+            </div>
+
+            {showHistory && (
+              <div className="space-y-4">
+                {medicationHistory.length > 0 ? (
+                  medicationHistory.map((record, index) => (
+                    <motion.div
+                      key={record.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all duration-300"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Calendar className="w-4 h-4 text-gray-400" />
+                            <span className="text-gray-400 text-sm">
+                              {formatDate(record.createdAt)}
+                            </span>
+                            {record.isActive ? (
+                              <span className="px-2 py-1 bg-green-500/20 border border-green-500/30 rounded-full text-xs text-green-300">
+                                Active
+                              </span>
+                            ) : (
+                              <span className="px-2 py-1 bg-gray-500/20 border border-gray-500/30 rounded-full text-xs text-gray-300">
+                                Inactive
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-4 mb-3">
+                            <div
+                              className={`w-12 h-12 bg-gradient-to-br ${
+                                record.color || "from-purple-500 to-blue-500"
+                              } rounded-xl flex items-center justify-center shadow-lg`}
+                            >
+                              <Pill className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-bold text-white">{record.name}</h3>
+                              <p className="text-gray-400">{record.dosage} • {record.frequency}</p>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {record.category && (
+                              <span className="px-2 py-1 bg-blue-500/20 border border-blue-500/30 rounded-full text-xs text-blue-300">
+                                {record.category}
+                              </span>
+                            )}
+                            <span className="px-2 py-1 bg-orange-500/20 border border-orange-500/30 rounded-full text-xs text-orange-300">
+                              {record.time}
+                            </span>
+                            {record.instructions && (
+                              <span className="px-2 py-1 bg-purple-500/20 border border-purple-500/30 rounded-full text-xs text-purple-300">
+                                Has Instructions
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2 ml-4">
+                          {record.taken ? (
+                            <span className="px-2 py-1 bg-green-500/20 border border-green-500/30 rounded-full text-xs text-green-300">
+                              Taken
+                            </span>
+                          ) : (
+                            <span className="px-2 py-1 bg-yellow-500/20 border border-yellow-500/30 rounded-full text-xs text-yellow-300">
+                              Pending
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <FaHistory className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-400">No medication history available</p>
+                    <p className="text-gray-500 text-sm">Your medications will appear here</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </GlassCard>
+        </motion.div>
       </div>
     </div>
   )

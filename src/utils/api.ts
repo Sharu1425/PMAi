@@ -154,6 +154,17 @@ export const aiAPI = {
     const response = await api.post("/api/ai/meal-plan", preferences)
     return response.data
   },
+
+  // New history endpoints
+  getSymptomHistory: async (): Promise<ApiResponse<Symptom[]>> => {
+    const response = await api.get("/api/ai/symptoms/history")
+    return response.data
+  },
+
+  getDietPlanHistory: async (): Promise<ApiResponse<DietPlan[]>> => {
+    const response = await api.get("/api/ai/diet-plans/history")
+    return response.data
+  },
 }
 
 // Medication API
@@ -180,6 +191,12 @@ export const medicationAPI = {
 
   markAsTaken: async (id: string, taken: boolean): Promise<ApiResponse> => {
     const response = await api.patch(`/api/medications/${id}/taken`, { taken })
+    return response.data
+  },
+
+  // New history endpoint
+  getMedicationHistory: async (): Promise<ApiResponse<Medication[]>> => {
+    const response = await api.get("/api/medications/history")
     return response.data
   },
 }

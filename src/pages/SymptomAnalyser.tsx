@@ -1,22 +1,10 @@
 "use client"
 
 import type React from "react"
-import { useState, useRef, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { FaPlus, FaTimes, FaPaperPlane } from "react-icons/fa"
-import {
-  Stethoscope,
-  Bot,
-  Heart,
-  AlertTriangle,
-  Clock,
-  TrendingUp,
-  Brain,
-  Activity,
-  MessageSquare,
-  Search,
-  FileText,
-} from "lucide-react"
+import { useState, useEffect } from "react"
+import { motion } from "framer-motion"
+import { FaThermometerHalf, FaBrain, FaExclamationTriangle, FaCheckCircle, FaHistory } from "react-icons/fa"
+import { AlertTriangle, Lightbulb, Activity, Calendar } from "lucide-react"
 import GlassCard from "@/components/ui/GlassCard"
 import AnimatedButton from "@/components/ui/AnimatedButton"
 import { useToast } from "@/hooks/useToast"
@@ -26,18 +14,12 @@ interface SymptomAnalyserProps {
   user: any
 }
 
-interface ChatMessage {
-  type: "user" | "ai"
-  message: string
-  timestamp: Date
-}
-
 interface AnalysisResult {
   possibleConditions: string[]
-  recommendations: string[]
+  confidence: number
   urgencyLevel: "low" | "medium" | "high"
   analysis: string
-  confidence: number
+  recommendations: string[]
 }
 
 const SymptomAnalyser: React.FC<SymptomAnalyserProps> = ({ user: _user }) => {
@@ -45,34 +27,35 @@ const SymptomAnalyser: React.FC<SymptomAnalyserProps> = ({ user: _user }) => {
   const [currentSymptom, setCurrentSymptom] = useState("")
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    {
-      type: "ai",
-      message: "Hello! I'm your AI health assistant. Please describe your symptoms and I'll help analyze them. Remember, this is for informational purposes only and doesn't replace professional medical advice.",
-      timestamp: new Date(),
-    },
-  ])
-  const [chatInput, setChatInput] = useState("")
-  const [isChatMode, setIsChatMode] = useState(false)
-  const [isChatLoading, setIsChatLoading] = useState(false)
-  const chatEndRef = useRef<HTMLDivElement>(null)
+  const [symptomHistory, setSymptomHistory] = useState<any[]>([])
+  const [showHistory, setShowHistory] = useState(false)
   const toast = useToast()
 
+  // Load symptom history on component mount
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [chatMessages])
+    loadSymptomHistory()
+  }, [])
+
+  const loadSymptomHistory = async () => {
+    try {
+      const response = await aiAPI.getSymptomHistory()
+      if (response.success && response.data) {
+        setSymptomHistory(response.data)
+      }
+    } catch (error) {
+      console.error("Error loading symptom history:", error)
+    }
+  }
 
   const addSymptom = () => {
     if (currentSymptom.trim() && !symptoms.includes(currentSymptom.trim())) {
       setSymptoms([...symptoms, currentSymptom.trim()])
       setCurrentSymptom("")
-      toast.success("Symptom Added", "Symptom has been added to your list")
     }
   }
 
-  const removeSymptom = (symptomToRemove: string) => {
-    setSymptoms(symptoms.filter((symptom) => symptom !== symptomToRemove))
-    toast.info("Symptom Removed", "Symptom has been removed from your list")
+  const removeSymptom = (index: number) => {
+    setSymptoms(symptoms.filter((_, i) => i !== index))
   }
 
   const analyzeSymptoms = async () => {
@@ -85,49 +68,31 @@ const SymptomAnalyser: React.FC<SymptomAnalyserProps> = ({ user: _user }) => {
     try {
       const response = await aiAPI.analyzeSymptoms(symptoms)
       
-      if (!response.data) {
-        throw new Error("No analysis data received")
+      if (response.success && response.data) {
+        // Parse the AI response to extract structured data
+        const aiResponse = response.data
+        
+        // Create a structured analysis result
+        const analysisResult: AnalysisResult = {
+          possibleConditions: ["General Symptom Analysis"],
+          confidence: 70,
+          urgencyLevel: "medium",
+          analysis: aiResponse,
+          recommendations: [
+            "Monitor your symptoms",
+            "Keep track of any changes",
+            "Consult a healthcare professional if symptoms persist or worsen"
+          ]
+        }
+        
+        setAnalysis(analysisResult)
+        toast.success("Analysis Complete", "Your symptoms have been analyzed successfully!")
+        
+        // Reload history to include the new analysis
+        await loadSymptomHistory()
+      } else {
+        throw new Error("Failed to analyze symptoms")
       }
-      
-      // Parse the AI response and create a structured result
-      const aiResponse = response.data as string
-      
-      // Validate that we got a meaningful response
-      if (typeof aiResponse !== 'string' || aiResponse.trim().length === 0) {
-        throw new Error("Invalid response format from AI service")
-      }
-      
-      const mockResult: AnalysisResult = {
-        possibleConditions: ["General Symptom Analysis"],
-        confidence: 85,
-        urgencyLevel: "medium",
-        analysis: aiResponse,
-        recommendations: [
-          "Monitor symptoms for 24-48 hours",
-          "Rest and stay hydrated",
-          "Consider over-the-counter pain relief if appropriate",
-          "Seek medical attention if symptoms worsen"
-        ]
-      }
-      
-      setAnalysis(mockResult)
-
-      // Add AI response to chat
-      setChatMessages((prev) => [
-        ...prev,
-        {
-          type: "user",
-          message: `Analyze these symptoms: ${symptoms.join(", ")}`,
-          timestamp: new Date(),
-        },
-        {
-          type: "ai",
-          message: aiResponse,
-          timestamp: new Date(),
-        },
-      ])
-
-      toast.success("Analysis Complete", "Your symptom analysis is ready!")
     } catch (error) {
       console.error("Error analyzing symptoms:", error)
       
@@ -161,115 +126,40 @@ const SymptomAnalyser: React.FC<SymptomAnalyserProps> = ({ user: _user }) => {
     }
   }
 
-  const sendChatMessage = async () => {
-    if (!chatInput.trim()) return
-
-    const userMessage: ChatMessage = {
-      type: "user",
-      message: chatInput,
-      timestamp: new Date(),
-    }
-
-    setChatMessages((prev) => [...prev, userMessage])
-    setChatInput("")
-    setIsChatLoading(true)
-
-    try {
-      // Call the actual AI API for chat
-      const response = await aiAPI.chatWithAI(chatInput)
-      
-      if (response.data && response.data.message) {
-        const aiResponse: ChatMessage = {
-          type: "ai",
-          message: response.data.message,
-          timestamp: new Date(),
-        }
-        setChatMessages((prev) => [...prev, aiResponse])
-      } else {
-        // Fallback response if API fails
-        const fallbackResponse: ChatMessage = {
-          type: "ai",
-          message: `I understand you're experiencing: "${chatInput}". This could be related to several factors. Can you provide more details about when these symptoms started and their severity?`,
-          timestamp: new Date(),
-        }
-        setChatMessages((prev) => [...prev, fallbackResponse])
-      }
-    } catch (error) {
-      console.error("Error sending chat message:", error)
-      // Fallback response on error
-      const errorResponse: ChatMessage = {
-        type: "ai",
-        message: `I'm having trouble processing your message right now. Please try again in a moment or describe your symptoms in a different way.`,
-        timestamp: new Date(),
-      }
-      setChatMessages((prev) => [...prev, errorResponse])
-      toast.error("Chat Error", "Failed to get AI response. Please try again.")
-    } finally {
-      setIsChatLoading(false)
-    }
-  }
-
-  const handleKeyPress = (e: React.KeyboardEvent, action: () => void) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      action()
-    }
-  }
-
-  const getSeverityColor = (urgencyLevel: string) => {
-    switch (urgencyLevel?.toLowerCase()) {
-      case "low":
-        return "from-green-500 to-emerald-500"
-      case "medium":
-        return "from-yellow-500 to-orange-500"
+  const getUrgencyColor = (urgency: string) => {
+    switch (urgency) {
       case "high":
-        return "from-orange-500 to-red-500"
-      default:
-        return "from-blue-500 to-cyan-500"
-    }
-  }
-
-  const getUrgencyIcon = (urgencyLevel: string) => {
-    switch (urgencyLevel?.toLowerCase()) {
-      case "high":
-        return <AlertTriangle className="w-6 h-6 text-red-400" />
+        return "text-red-400"
       case "medium":
-        return <Clock className="w-6 h-6 text-orange-400" />
+        return "text-yellow-400"
       case "low":
-        return <Heart className="w-6 h-6 text-green-400" />
+        return "text-green-400"
       default:
-        return <Stethoscope className="w-6 h-6 text-blue-400" />
+        return "text-gray-400"
     }
   }
 
-  const commonSymptoms = [
-    "Headache",
-    "Fever",
-    "Cough",
-    "Fatigue",
-    "Nausea",
-    "Dizziness",
-    "Chest pain",
-    "Shortness of breath",
-    "Stomach pain",
-    "Joint pain",
-    "Muscle aches",
-    "Sore throat",
-  ]
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
+  const getUrgencyIcon = (urgency: string) => {
+    switch (urgency) {
+      case "high":
+        return <FaExclamationTriangle className="w-5 h-5 text-red-400" />
+      case "medium":
+        return <AlertTriangle className="w-5 h-5 text-yellow-400" />
+      case "low":
+        return <FaCheckCircle className="w-5 h-5 text-green-400" />
+      default:
+        return <Activity className="w-5 h-5 text-gray-400" />
+    }
   }
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 },
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
   }
 
   return (
@@ -283,389 +173,245 @@ const SymptomAnalyser: React.FC<SymptomAnalyserProps> = ({ user: _user }) => {
           className="mb-8"
         >
           <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">AI Symptom Analyzer</h1>
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Symptom Analyzer</h1>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-              Describe your symptoms and get AI-powered insights to help understand your health concerns. Always consult
-              with healthcare professionals for medical advice.
+              Get AI-powered insights about your symptoms and health concerns. Add your symptoms below and receive personalized analysis and recommendations.
             </p>
           </div>
         </motion.div>
 
-        {/* Mode Toggle */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.6 }}
-          className="mb-8"
-        >
-          <div className="flex justify-center">
-            <div className="flex space-x-1 bg-white/5 rounded-xl p-1">
-              <button
-                onClick={() => setIsChatMode(false)}
-                className={`flex items-center space-x-2 py-3 px-6 rounded-lg transition-all duration-300 ${
-                  !isChatMode
-                    ? "bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-lg"
-                    : "text-gray-400 hover:text-white hover:bg-white/10"
-                }`}
-              >
-                <Search className="w-4 h-4" />
-                <span>Symptom Analysis</span>
-              </button>
-              <button
-                onClick={() => setIsChatMode(true)}
-                className={`flex items-center space-x-2 py-3 px-6 rounded-lg transition-all duration-300 ${
-                  isChatMode
-                    ? "bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-lg"
-                    : "text-gray-400 hover:text-white hover:bg-white/10"
-                }`}
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span>AI Chat</span>
-              </button>
-            </div>
-          </div>
-        </motion.div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Panel - Symptom Input or Chat */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Input Section */}
           <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="lg:col-span-2 space-y-6"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
           >
-            {!isChatMode ? (
-              <>
-                {/* Symptom Input */}
-                <motion.div variants={itemVariants}>
-                  <GlassCard>
-                    <div className="flex items-center mb-6">
-                      <Stethoscope className="w-6 h-6 text-blue-400 mr-3" />
-                      <h2 className="text-2xl font-bold text-white">Add Your Symptoms</h2>
-                    </div>
+            <GlassCard hover>
+              <div className="flex items-center mb-6">
+                <FaThermometerHalf className="w-6 h-6 text-red-400 mr-3" />
+                <h2 className="text-2xl font-bold text-white">Add Your Symptoms</h2>
+              </div>
 
-                    <div className="space-y-4">
-                      <div className="flex space-x-3">
-                        <input
-                          type="text"
-                          value={currentSymptom}
-                          onChange={(e) => setCurrentSymptom(e.target.value)}
-                          onKeyPress={(e) => handleKeyPress(e, addSymptom)}
-                          className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                          placeholder="Describe a symptom (e.g., headache, fever, cough)"
-                        />
-                        <AnimatedButton onClick={addSymptom} variant="primary">
-                          <FaPlus className="w-4 h-4" />
-                        </AnimatedButton>
-                      </div>
+              <div className="space-y-4">
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={currentSymptom}
+                    onChange={(e) => setCurrentSymptom(e.target.value)}
+                    onKeyPress={(e) => e.key === "Enter" && addSymptom()}
+                    placeholder="Enter a symptom (e.g., headache, fever)"
+                    className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300"
+                  />
+                  <AnimatedButton
+                    onClick={addSymptom}
+                    variant="primary"
+                    size="sm"
+                    className="px-6"
+                  >
+                    Add
+                  </AnimatedButton>
+                </div>
 
-                      {/* Common Symptoms */}
-                      <div>
-                        <p className="text-gray-300 text-sm mb-3">Quick add common symptoms:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {commonSymptoms.map((symptom) => (
-                            <button
-                              key={symptom}
-                              onClick={() => {
-                                if (!symptoms.includes(symptom)) {
-                                  setSymptoms([...symptoms, symptom])
-                                  toast.success("Symptom Added", `${symptom} added to your list`)
-                                }
-                              }}
-                              disabled={symptoms.includes(symptom)}
-                              className="px-3 py-1 bg-white/10 hover:bg-white/20 disabled:bg-white/5 disabled:text-gray-500 text-white text-sm rounded-full transition-all duration-300"
-                            >
-                              {symptom}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </GlassCard>
-                </motion.div>
-
-                {/* Current Symptoms */}
                 {symptoms.length > 0 && (
-                  <motion.div variants={itemVariants}>
-                    <GlassCard>
-                      <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-xl font-bold text-white">Current Symptoms ({symptoms.length})</h3>
-                        <AnimatedButton
-                          onClick={analyzeSymptoms}
-                          variant="primary"
-                          isLoading={isAnalyzing}
-                          className="flex items-center space-x-2"
-                          shimmer
-                        >
-                          <Brain className="w-4 h-4" />
-                          <span>{isAnalyzing ? "Analyzing..." : "Analyze Symptoms"}</span>
-                        </AnimatedButton>
-                      </div>
-
-                      <div className="flex flex-wrap gap-3">
-                        <AnimatePresence>
-                          {symptoms.map((symptom, index) => (
-                            <motion.div
-                              key={symptom}
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.8 }}
-                              transition={{ delay: index * 0.1 }}
-                              className="flex items-center space-x-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white px-4 py-2 rounded-full"
-                            >
-                              <span>{symptom}</span>
-                              <button
-                                onClick={() => removeSymptom(symptom)}
-                                className="hover:bg-white/20 rounded-full p-1 transition-colors"
-                              >
-                                <FaTimes className="w-3 h-3" />
-                              </button>
-                            </motion.div>
-                          ))}
-                        </AnimatePresence>
-                      </div>
-                    </GlassCard>
-                  </motion.div>
-                )}
-
-                {/* Analysis Results */}
-                <AnimatePresence>
-                  {analysis && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 30 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -30 }}
-                      transition={{ duration: 0.6 }}
-                    >
-                      <GlassCard glow>
-                        <div className="flex items-center mb-6">
-                          <Bot className="w-6 h-6 text-green-400 mr-3" />
-                          <h2 className="text-2xl font-bold text-white">AI Analysis Results</h2>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                          <div className="text-center">
-                            <div
-                              className={`w-16 h-16 mx-auto mb-3 bg-gradient-to-br ${getSeverityColor(
-                                analysis.urgencyLevel
-                              )} rounded-2xl flex items-center justify-center shadow-lg`}
-                            >
-                              {getUrgencyIcon(analysis.urgencyLevel)}
-                            </div>
-                            <div className="text-white font-semibold">{analysis.possibleConditions.join(", ")}</div>
-                            <div className="text-gray-400 text-sm">Potential Conditions</div>
-                          </div>
-
-                          <div className="text-center">
-                            <div className="w-16 h-16 mx-auto mb-3 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg">
-                              <TrendingUp className="w-6 h-6 text-white" />
-                            </div>
-                            <div className="text-white font-semibold">{analysis.confidence}%</div>
-                            <div className="text-gray-400 text-sm">Confidence Level</div>
-                          </div>
-
-                          <div className="text-center">
-                            <div className="w-16 h-16 mx-auto mb-3 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center shadow-lg">
-                              <Activity className="w-6 h-6 text-white" />
-                            </div>
-                            <div className="text-white font-semibold capitalize">{analysis.urgencyLevel}</div>
-                            <div className="text-gray-400 text-sm">Urgency Level</div>
-                          </div>
-                        </div>
-
-                        <div className="space-y-6">
-                          <div>
-                            <h3 className="text-lg font-semibold text-white mb-3 flex items-center">
-                              <FileText className="w-5 h-5 mr-2 text-blue-400" />
-                              Description
-                            </h3>
-                            <p className="text-gray-300 leading-relaxed">{analysis.analysis}</p>
-                          </div>
-
-                          <div>
-                            <h3 className="text-lg font-semibold text-white mb-3 flex items-center">
-                              <Heart className="w-5 h-5 mr-2 text-pink-400" />
-                              Recommendations
-                            </h3>
-                            <ul className="space-y-2">
-                              {analysis.recommendations.map((rec, index) => (
-                                <motion.li
-                                  key={index}
-                                  initial={{ opacity: 0, x: -20 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  transition={{ delay: index * 0.1 }}
-                                  className="flex items-start space-x-3 text-gray-300"
-                                >
-                                  <div className="w-2 h-2 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full mt-2 flex-shrink-0" />
-                                  <span>{rec}</span>
-                                </motion.li>
-                              ))}
-                            </ul>
-                          </div>
-
-                          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
-                            <div className="flex items-start space-x-3">
-                              <AlertTriangle className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" />
-                              <div>
-                                <p className="text-yellow-400 font-semibold mb-1">Medical Disclaimer</p>
-                                <p className="text-gray-300 text-sm">
-                                  This analysis is for informational purposes only and should not replace professional
-                                  medical advice. Please consult with a healthcare provider for proper diagnosis and
-                                  treatment.
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </GlassCard>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </>
-            ) : (
-              /* Chat Interface */
-              <motion.div variants={itemVariants}>
-                <GlassCard className="h-96">
-                  <div className="flex items-center mb-4">
-                    <Bot className="w-6 h-6 text-purple-400 mr-3" />
-                    <h2 className="text-xl font-bold text-white">AI Health Assistant</h2>
-                  </div>
-
-                  <div className="flex flex-col h-80">
-                    <div className="flex-1 overflow-y-auto space-y-4 pr-4">
-                      {chatMessages.map((message, index) => (
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-semibold text-white">Current Symptoms:</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {symptoms.map((symptom, index) => (
                         <motion.div
                           key={index}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          className={`flex ${message.type === "user" ? "justify-end" : "justify-start"}`}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="flex items-center space-x-2 bg-red-500/20 border border-red-500/30 rounded-full px-3 py-1"
                         >
-                          <div
-                            className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${
-                              message.type === "user"
-                                ? "bg-gradient-to-r from-purple-500 to-blue-500 text-white"
-                                : "bg-white/10 text-gray-300"
-                            }`}
+                          <span className="text-red-300 text-sm">{symptom}</span>
+                          <button
+                            onClick={() => removeSymptom(index)}
+                            className="text-red-400 hover:text-red-300 transition-colors"
                           >
-                            <p className="text-sm">{message.message}</p>
-                            <p className="text-xs opacity-70 mt-1">
-                              {message.timestamp.toLocaleTimeString("en-US", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </p>
-                          </div>
+                            ×
+                          </button>
                         </motion.div>
                       ))}
-                      {isChatLoading && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="flex justify-start"
-                        >
-                          <div className="bg-white/10 text-gray-300 px-4 py-3 rounded-2xl">
-                            <div className="flex items-center space-x-2">
-                              <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" />
-                              <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                              <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                            </div>
-                          </div>
-                        </motion.div>
-                      )}
-                      <div ref={chatEndRef} />
-                    </div>
-
-                    <div className="flex space-x-3 mt-4">
-                      <input
-                        type="text"
-                        value={chatInput}
-                        onChange={(e) => setChatInput(e.target.value)}
-                        onKeyPress={(e) => handleKeyPress(e, sendChatMessage)}
-                        disabled={isChatLoading}
-                        className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 disabled:opacity-50"
-                        placeholder={isChatLoading ? "AI is thinking..." : "Describe your symptoms or ask a question..."}
-                      />
-                      <AnimatedButton 
-                        onClick={sendChatMessage} 
-                        variant="primary"
-                        disabled={isChatLoading || !chatInput.trim()}
-                      >
-                        <FaPaperPlane className="w-4 h-4" />
-                      </AnimatedButton>
                     </div>
                   </div>
-                </GlassCard>
-              </motion.div>
-            )}
+                )}
+
+                <AnimatedButton
+                  onClick={analyzeSymptoms}
+                  variant="primary"
+                  className="w-full"
+                  isLoading={isAnalyzing}
+                  shimmer
+                >
+                  <div className="flex items-center space-x-2">
+                    <FaBrain className="w-4 h-4" />
+                    <span>{isAnalyzing ? "Analyzing..." : "Analyze Symptoms"}</span>
+                  </div>
+                </AnimatedButton>
+              </div>
+            </GlassCard>
           </motion.div>
 
-          {/* Right Sidebar */}
+          {/* Analysis Results */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3, duration: 0.6 }}
-            className="space-y-6"
+            transition={{ duration: 0.6, delay: 0.2 }}
           >
-            {/* Health Tips */}
-            <GlassCard>
-              <div className="flex items-center mb-4">
-                <Heart className="w-5 h-5 text-pink-400 mr-3" />
-                <h3 className="text-lg font-bold text-white">Health Tips</h3>
-              </div>
-              <div className="space-y-3 text-gray-300 text-sm">
-                <p>• Be specific when describing symptoms</p>
-                <p>• Note when symptoms started</p>
-                <p>• Mention symptom severity (1-10 scale)</p>
-                <p>• Include any triggers you've noticed</p>
-                <p>• Always consult a doctor for concerning symptoms</p>
-              </div>
-            </GlassCard>
+            {analysis ? (
+              <GlassCard glow>
+                <div className="flex items-center mb-6">
+                  <FaBrain className="w-6 h-6 text-blue-400 mr-3" />
+                  <h2 className="text-2xl font-bold text-white">Analysis Results</h2>
+                </div>
 
-            {/* Emergency Warning */}
-            <GlassCard className="border-red-500/20 bg-red-500/5">
-              <div className="flex items-center mb-4">
-                <AlertTriangle className="w-5 h-5 text-red-400 mr-3" />
-                <h3 className="text-lg font-bold text-red-400">Emergency Signs</h3>
-              </div>
-              <div className="space-y-2 text-gray-300 text-sm">
-                <p>Seek immediate medical attention for:</p>
-                <ul className="space-y-1 ml-4">
-                  <li>• Chest pain</li>
-                  <li>• Severe breathing difficulties</li>
-                  <li>• Sudden severe headache</li>
-                  <li>• Signs of stroke</li>
-                  <li>• Severe allergic reactions</li>
-                </ul>
-              </div>
-            </GlassCard>
+                <div className="space-y-6">
+                  {/* Confidence and Urgency */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-4 bg-white/5 rounded-xl border border-white/10">
+                      <div className="text-2xl font-bold text-blue-400">{analysis.confidence}%</div>
+                      <div className="text-gray-400 text-sm">Confidence</div>
+                    </div>
+                    <div className="text-center p-4 bg-white/5 rounded-xl border border-white/10">
+                      <div className="flex items-center justify-center mb-2">
+                        {getUrgencyIcon(analysis.urgencyLevel)}
+                      </div>
+                      <div className={`text-lg font-semibold ${getUrgencyColor(analysis.urgencyLevel)} capitalize`}>
+                        {analysis.urgencyLevel} Urgency
+                      </div>
+                    </div>
+                  </div>
 
-            {/* Quick Actions */}
-            <GlassCard>
-              <h3 className="text-lg font-bold text-white mb-4">Quick Actions</h3>
-              <div className="space-y-3">
-                <AnimatedButton variant="outline" className="w-full">
-                  <div className="flex items-center justify-start space-x-2">
-                    <Stethoscope className="w-4 h-4" />
-                    <span>Find Nearby Doctors</span>
+                  {/* Analysis */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-3">Analysis</h3>
+                    <div className="p-4 bg-white/5 rounded-xl border border-white/10">
+                      <p className="text-gray-300 leading-relaxed">{analysis.analysis}</p>
+                    </div>
                   </div>
-                </AnimatedButton>
-                <AnimatedButton variant="outline" className="w-full">
-                  <div className="flex items-center justify-start space-x-2">
-                    <FileText className="w-4 h-4" />
-                    <span>View Medical History</span>
+
+                  {/* Recommendations */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-3">Recommendations</h3>
+                    <div className="space-y-2">
+                      {analysis.recommendations.map((recommendation, index) => (
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          className="flex items-start space-x-3 p-3 bg-white/5 rounded-xl border border-white/10"
+                        >
+                          <Lightbulb className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" />
+                          <span className="text-gray-300">{recommendation}</span>
+                        </motion.div>
+                      ))}
+                    </div>
                   </div>
-                </AnimatedButton>
-                <AnimatedButton variant="outline" className="w-full">
-                  <div className="flex items-center justify-start space-x-2">
-                    <Clock className="w-4 h-4" />
-                    <span>Schedule Checkup</span>
-                  </div>
-                </AnimatedButton>
-              </div>
-            </GlassCard>
+                </div>
+              </GlassCard>
+            ) : (
+              <GlassCard className="h-full flex items-center justify-center">
+                <div className="text-center">
+                  <motion.div
+                    animate={{
+                      scale: [1, 1.1, 1],
+                      rotate: [0, 5, -5, 0],
+                    }}
+                    transition={{
+                      duration: 4,
+                      repeat: Number.POSITIVE_INFINITY,
+                      ease: "easeInOut",
+                    }}
+                  >
+                    <FaBrain className="w-20 h-20 text-gray-400 mx-auto mb-6" />
+                  </motion.div>
+                  <h3 className="text-2xl font-bold text-white mb-4">No Analysis Yet</h3>
+                  <p className="text-gray-400 text-lg max-w-md mx-auto">
+                    Add your symptoms and click "Analyze Symptoms" to get AI-powered health insights and recommendations.
+                  </p>
+                </div>
+              </GlassCard>
+            )}
           </motion.div>
         </div>
+
+        {/* Symptom History Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="mt-12"
+        >
+          <GlassCard>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center">
+                <FaHistory className="w-6 h-6 text-purple-400 mr-3" />
+                <h2 className="text-2xl font-bold text-white">Recent Symptom History</h2>
+              </div>
+              <AnimatedButton
+                onClick={() => setShowHistory(!showHistory)}
+                variant="outline"
+                size="sm"
+              >
+                {showHistory ? "Hide" : "Show"} History
+              </AnimatedButton>
+            </div>
+
+            {showHistory && (
+              <div className="space-y-4">
+                {symptomHistory.length > 0 ? (
+                  symptomHistory.map((record, index) => (
+                    <motion.div
+                      key={record.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all duration-300"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Calendar className="w-4 h-4 text-gray-400" />
+                            <span className="text-gray-400 text-sm">
+                              {formatDate(record.createdAt)}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-2 mb-3">
+                            {record.symptoms.map((symptom: string, idx: number) => (
+                              <span
+                                key={idx}
+                                className="px-2 py-1 bg-red-500/20 border border-red-500/30 rounded-full text-xs text-red-300"
+                              >
+                                {symptom}
+                              </span>
+                            ))}
+                          </div>
+                          <div className="text-gray-300 text-sm line-clamp-3">
+                            {record.analysis.analysis}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2 ml-4">
+                          {getUrgencyIcon(record.analysis.urgencyLevel)}
+                          <span className={`text-xs ${getUrgencyColor(record.analysis.urgencyLevel)}`}>
+                            {record.analysis.confidence}%
+                          </span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <FaHistory className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-400">No symptom history available</p>
+                    <p className="text-gray-500 text-sm">Your symptom analyses will appear here</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </GlassCard>
+        </motion.div>
       </div>
     </div>
   )

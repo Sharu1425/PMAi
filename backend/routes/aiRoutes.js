@@ -1,58 +1,28 @@
-import express from 'express';
-import { analyzeSymptoms, getDietRecommendations, generateMealPlan } from '../services/aiService.js';
-import rateLimit from 'express-rate-limit';
+import express from "express"
+import rateLimit from "express-rate-limit"
+import { auth } from "../middleware/auth.js"
+import { analyzeSymptoms, getDietRecommendations, chatWithAI, generateMealPlan } from "../services/aiService.js"
+import Symptom from "../models/symptom.js"
+import DietPlan from "../models/dietPlan.js"
+import AIChat from "../models/aiChat.js"
 
-const router = express.Router();
+const router = express.Router()
 
-// AI-specific rate limiting to prevent abuse
+// Rate limiting for AI endpoints
 const aiLimiter = rateLimit({
-    windowMs: 60 * 1000, // 1 minute
-    max: 10, // limit each IP to 10 AI requests per minute
-    message: {
-        error: 'Too many AI requests',
-        message: 'Please wait a moment before making more AI requests',
-        success: false
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
-
-// Health check endpoint for AI service
-router.get('/health', (req, res) => {
-    try {
-        const aiStatus = {
-            status: 'operational',
-            timestamp: new Date().toISOString(),
-            features: {
-                symptomAnalysis: 'available',
-                dietRecommendations: 'available',
-                mealPlanning: 'available',
-                chat: 'available'
-            },
-            environment: process.env.NODE_ENV || 'development',
-            geminiConfigured: !!process.env.GEMINI_API_KEY
-        };
-        
-        res.json({
-            success: true,
-            data: aiStatus,
-            message: 'AI service is operational'
-        });
-    } catch (error) {
-        console.error('AI health check error:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Health check failed',
-            message: error.message
-        });
-    }
-});
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30, // limit each IP to 30 requests per windowMs
+  message: {
+    error: "Too many AI requests, please try again later.",
+  },
+})
 
 // Endpoint for symptom analysis
 // Frontend expects: POST body { symptoms: string[] } and response { data: string }
-router.post('/analyze-symptoms', aiLimiter, async (req, res) => {
+router.post('/analyze-symptoms', auth, aiLimiter, async (req, res) => {
     try {
-        const { message, conversationHistory, symptoms } = req.body;
+        const { message, conversationHistory, symptoms } = req.body
+        const userId = req.user.id
         
         // Input validation
         if (!message && (!symptoms || !Array.isArray(symptoms) || symptoms.length === 0)) {
@@ -60,49 +30,82 @@ router.post('/analyze-symptoms', aiLimiter, async (req, res) => {
                 error: 'Missing input',
                 message: 'Please provide either a message or symptoms array',
                 success: false
-            });
+            })
         }
         
-        const input = Array.isArray(symptoms) ? symptoms.join(', ') : message;
+        const input = Array.isArray(symptoms) ? symptoms.join(', ') : message
         
         try {
-            const reply = await analyzeSymptoms(input, conversationHistory);
+            const reply = await analyzeSymptoms(input, conversationHistory)
             
             if (!reply || typeof reply !== 'string') {
-                throw new Error('AI service returned invalid response format');
+                throw new Error('AI service returned invalid response format')
             }
+            
+            // Save to database
+            const symptomRecord = new Symptom({
+                userId,
+                symptoms: Array.isArray(symptoms) ? symptoms : [input],
+                aiResponse: reply,
+                analysis: {
+                    possibleConditions: ["General Analysis"],
+                    confidence: 70,
+                    urgencyLevel: "medium",
+                    analysis: reply,
+                    recommendations: ["Monitor symptoms", "Consult healthcare professional if needed"]
+                }
+            })
+            
+            await symptomRecord.save()
             
             return res.json({ 
                 data: reply, 
                 success: true,
                 message: 'Symptom analysis completed successfully'
-            });
+            })
         } catch (aiError) {
-            console.error('AI service error:', aiError);
+            console.error('AI service error:', aiError)
             // Return a helpful fallback response instead of failing
-            const fallbackResponse = "I understand you're experiencing symptoms. While I'm currently unable to provide AI-powered analysis, I recommend monitoring your symptoms and consulting a healthcare professional if they persist or worsen. What specific symptoms are you experiencing?";
+            const fallbackResponse = "I understand you're experiencing symptoms. While I'm currently unable to provide AI-powered analysis, I recommend monitoring your symptoms and consulting a healthcare professional if they persist or worsen. What specific symptoms are you experiencing?"
+            
+            // Save fallback response to database
+            const symptomRecord = new Symptom({
+                userId,
+                symptoms: Array.isArray(symptoms) ? symptoms : [input],
+                aiResponse: fallbackResponse,
+                analysis: {
+                    possibleConditions: ["General Analysis"],
+                    confidence: 50,
+                    urgencyLevel: "medium",
+                    analysis: fallbackResponse,
+                    recommendations: ["Monitor symptoms", "Consult healthcare professional if needed"]
+                }
+            })
+            
+            await symptomRecord.save()
             
             return res.json({ 
                 data: fallbackResponse, 
                 success: true,
                 message: 'Analysis completed with fallback response'
-            });
+            })
         }
     } catch (error) {
-        console.error('Error analyzing symptoms:', error);
+        console.error('Error analyzing symptoms:', error)
         return res.status(500).json({ 
             error: 'Failed to analyze symptoms',
             message: 'Internal server error. Please try again later.',
             success: false
-        });
+        })
     }
-});
+})
 
 // Endpoint for diet recommendations
 // Frontend expects: POST preferences object and response { data: DietPlan object }
-router.post('/diet-recommendations', aiLimiter, async (req, res) => {
+router.post('/diet-recommendations', auth, aiLimiter, async (req, res) => {
     try {
-        const { message, conversationHistory, userProfile, ...preferences } = req.body;
+        const { message, conversationHistory, userProfile, ...preferences } = req.body
+        const userId = req.user.id
         
         // Input validation
         if (!message && Object.keys(preferences).length === 0) {
@@ -110,27 +113,38 @@ router.post('/diet-recommendations', aiLimiter, async (req, res) => {
                 error: 'Missing input',
                 message: 'Please provide either a message or dietary preferences',
                 success: false
-            });
+            })
         }
         
         // Use preferences object directly, or create from message
-        const dietPreferences = Object.keys(preferences).length > 0 ? preferences : { goal: message };
+        const dietPreferences = Object.keys(preferences).length > 0 ? preferences : { goal: message }
         
         try {
-            const dietPlan = await getDietRecommendations(dietPreferences, conversationHistory, userProfile);
+            const dietPlan = await getDietRecommendations(dietPreferences, conversationHistory, userProfile)
             
             // Validate the response structure
             if (!dietPlan || typeof dietPlan !== 'object' || !dietPlan.totalCalories || !dietPlan.meals) {
-                throw new Error('AI service returned invalid diet plan structure');
+                throw new Error('AI service returned invalid diet plan structure')
             }
+            
+            // Save to database
+            const dietPlanRecord = new DietPlan({
+                userId,
+                preferences: dietPreferences,
+                plan: dietPlan,
+                aiResponse: JSON.stringify(dietPlan),
+                isAIGenerated: true
+            })
+            
+            await dietPlanRecord.save()
             
             return res.json({ 
                 data: dietPlan, 
                 success: true,
                 message: 'Diet plan generated successfully'
-            });
+            })
         } catch (aiError) {
-            console.error('AI service error:', aiError);
+            console.error('AI service error:', aiError)
             // Return a structured fallback diet plan instead of failing
             const fallbackPlan = {
                 totalCalories: 2000,
@@ -201,84 +215,75 @@ router.post('/diet-recommendations', aiLimiter, async (req, res) => {
                     "Oats", "Mixed berries", "Greek yogurt", "Quinoa", "Chicken breast",
                     "Salmon fillets", "Mixed vegetables", "Almonds", "Apples", "Olive oil"
                 ]
-            };
+            }
+            
+            // Save fallback plan to database
+            const dietPlanRecord = new DietPlan({
+                userId,
+                preferences: dietPreferences,
+                plan: fallbackPlan,
+                aiResponse: "Fallback diet plan generated",
+                isAIGenerated: false
+            })
+            
+            await dietPlanRecord.save()
             
             return res.json({ 
                 data: fallbackPlan, 
                 success: true,
                 message: 'Diet plan generated with fallback data'
-            });
+            })
         }
     } catch (error) {
-        console.error('Error generating diet recommendations:', error);
+        console.error('Error generating diet recommendations:', error)
         return res.status(500).json({ 
             error: 'Failed to generate diet recommendations',
             message: 'Internal server error. Please try again later.',
             success: false
-        });
+        })
     }
-});
+})
 
-// Chat endpoint for AI conversations
-router.post('/chat', aiLimiter, async (req, res) => {
+// Get user's symptom history
+router.get('/symptoms/history', auth, async (req, res) => {
     try {
-        const { message, context, conversationHistory } = req.body;
+        const userId = req.user.id
+        const symptoms = await Symptom.find({ userId })
+            .sort({ createdAt: -1 })
+            .limit(10)
         
-        if (!message) {
-            return res.status(400).json({
-                error: 'Message is required',
-                message: 'Please provide a message to chat with the AI',
-                success: false
-            });
-        }
-
-        // Use the analyzeSymptoms function for chat as well
-        const reply = await analyzeSymptoms(message, conversationHistory);
-        
-        return res.json({ 
-            data: { message: reply }, 
+        res.json({
             success: true,
-            message: 'Chat response generated successfully'
-        });
+            data: symptoms
+        })
     } catch (error) {
-        console.error('Error in AI chat:', error);
-        return res.status(500).json({ 
-            error: 'Failed to process chat message',
-            message: 'Internal server error. Please try again later.',
-            success: false
-        });
+        console.error('Error fetching symptom history:', error)
+        res.status(500).json({
+            error: 'Failed to fetch symptom history',
+            message: 'Internal server error'
+        })
     }
-});
+})
 
-// Meal plan generation endpoint
-router.post('/meal-plan', aiLimiter, async (req, res) => {
+// Get user's diet plan history
+router.get('/diet-plans/history', auth, async (req, res) => {
     try {
-        const { calories, dietType, allergies, meals, userProfile } = req.body;
+        const userId = req.user.id
+        const dietPlans = await DietPlan.find({ userId })
+            .sort({ createdAt: -1 })
+            .limit(10)
         
-        if (!calories || !dietType || !meals) {
-            return res.status(400).json({
-                error: 'Missing required fields',
-                message: 'Calories, diet type, and number of meals are required',
-                success: false
-            });
-        }
-
-        // Use the specialized meal planning function
-        const reply = await generateMealPlan(calories, dietType, allergies || [], meals, userProfile);
-        
-        return res.json({ 
-            data: reply, 
+        res.json({
             success: true,
-            message: 'Meal plan generated successfully'
-        });
+            data: dietPlans
+        })
     } catch (error) {
-        console.error('Error generating meal plan:', error);
-        return res.status(500).json({ 
-            error: 'Failed to generate meal plan',
-            message: 'Internal server error. Please try again later.',
-            success: false
-        });
+        console.error('Error fetching diet plan history:', error)
+        res.status(500).json({
+            error: 'Failed to fetch diet plan history',
+            message: 'Internal server error'
+        })
     }
-});
+})
 
-export default router;
+export default router

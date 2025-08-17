@@ -1,6 +1,7 @@
 import express from "express"
 import { auth } from "../middleware/auth.js"
 import rateLimit from "express-rate-limit"
+import Medication from "../models/medication.js"
 
 const router = express.Router()
 
@@ -16,44 +17,13 @@ const medicationLimiter = rateLimit({
 // Get all medications for a user
 router.get("/", auth, medicationLimiter, async (req, res) => {
   try {
-    // TODO: Implement medication model and database operations
-    // For now, return mock data that matches frontend expectations
+    const userId = req.user.id
+    const medications = await Medication.find({ userId, isActive: true })
+      .sort({ createdAt: -1 })
+    
     res.json({
       success: true,
-      data: [
-        {
-          id: "1",
-          name: "Vitamin D",
-          dosage: "1000 IU",
-          frequency: "Once daily",
-          time: "08:00",
-          startDate: "2024-01-01",
-          endDate: "2024-12-31",
-          instructions: "Take with breakfast",
-          reminders: true,
-          taken: false,
-          category: "Vitamin",
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: "2",
-          name: "Omega-3",
-          dosage: "500mg",
-          frequency: "Twice daily",
-          time: "08:00,20:00",
-          startDate: "2024-01-01",
-          endDate: "2024-06-30",
-          instructions: "Take with meals",
-          reminders: true,
-          taken: true,
-          category: "Supplement",
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }
-      ]
+      data: medications
     })
   } catch (error) {
     console.error("Error fetching medications:", error)
@@ -67,6 +37,7 @@ router.get("/", auth, medicationLimiter, async (req, res) => {
 // Add new medication
 router.post("/", auth, medicationLimiter, async (req, res) => {
   try {
+    const userId = req.user.id
     const { 
       name, 
       dosage, 
@@ -86,9 +57,8 @@ router.post("/", auth, medicationLimiter, async (req, res) => {
       })
     }
 
-    // TODO: Implement medication creation in database
-    const newMedication = {
-      id: Date.now().toString(),
+    const newMedication = new Medication({
+      userId,
       name,
       dosage,
       frequency,
@@ -100,9 +70,9 @@ router.post("/", auth, medicationLimiter, async (req, res) => {
       category: category || "General",
       taken: false,
       isActive: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
+    })
+
+    await newMedication.save()
 
     res.status(201).json({
       success: true,
@@ -122,6 +92,7 @@ router.post("/", auth, medicationLimiter, async (req, res) => {
 router.put("/:id", auth, medicationLimiter, async (req, res) => {
   try {
     const { id } = req.params
+    const userId = req.user.id
     const updates = req.body
 
     if (!id) {
@@ -131,11 +102,17 @@ router.put("/:id", auth, medicationLimiter, async (req, res) => {
       })
     }
 
-    // TODO: Implement medication update in database
-    const updatedMedication = {
-      id,
-      ...updates,
-      updatedAt: new Date().toISOString(),
+    const updatedMedication = await Medication.findOneAndUpdate(
+      { _id: id, userId },
+      { ...updates, updatedAt: new Date() },
+      { new: true }
+    )
+
+    if (!updatedMedication) {
+      return res.status(404).json({
+        error: "Medication not found",
+        message: "Medication not found or you don't have permission to update it",
+      })
     }
 
     res.json({
@@ -156,6 +133,7 @@ router.put("/:id", auth, medicationLimiter, async (req, res) => {
 router.delete("/:id", auth, medicationLimiter, async (req, res) => {
   try {
     const { id } = req.params
+    const userId = req.user.id
 
     if (!id) {
       return res.status(400).json({
@@ -164,7 +142,18 @@ router.delete("/:id", auth, medicationLimiter, async (req, res) => {
       })
     }
 
-    // TODO: Implement medication deletion in database
+    const deletedMedication = await Medication.findOneAndUpdate(
+      { _id: id, userId },
+      { isActive: false, updatedAt: new Date() },
+      { new: true }
+    )
+
+    if (!deletedMedication) {
+      return res.status(404).json({
+        error: "Medication not found",
+        message: "Medication not found or you don't have permission to delete it",
+      })
+    }
 
     res.json({
       success: true,
@@ -183,6 +172,7 @@ router.delete("/:id", auth, medicationLimiter, async (req, res) => {
 router.patch("/:id/taken", auth, medicationLimiter, async (req, res) => {
   try {
     const { id } = req.params
+    const userId = req.user.id
     const { taken } = req.body
 
     if (!id) {
@@ -199,12 +189,17 @@ router.patch("/:id/taken", auth, medicationLimiter, async (req, res) => {
       })
     }
 
-    // TODO: Implement medication taken status update in database
-    // For now, return a mock updated medication
-    const updatedMedication = {
-      id,
-      taken,
-      updatedAt: new Date().toISOString(),
+    const updatedMedication = await Medication.findOneAndUpdate(
+      { _id: id, userId },
+      { taken, updatedAt: new Date() },
+      { new: true }
+    )
+
+    if (!updatedMedication) {
+      return res.status(404).json({
+        error: "Medication not found",
+        message: "Medication not found or you don't have permission to update it",
+      })
     }
 
     res.json({
@@ -216,6 +211,27 @@ router.patch("/:id/taken", auth, medicationLimiter, async (req, res) => {
     console.error("Error updating medication taken status:", error)
     res.status(500).json({
       error: "Failed to update medication status",
+      message: "Internal server error",
+    })
+  }
+})
+
+// Get medication history
+router.get("/history", auth, medicationLimiter, async (req, res) => {
+  try {
+    const userId = req.user.id
+    const medications = await Medication.find({ userId })
+      .sort({ createdAt: -1 })
+      .limit(20)
+    
+    res.json({
+      success: true,
+      data: medications
+    })
+  } catch (error) {
+    console.error("Error fetching medication history:", error)
+    res.status(500).json({
+      error: "Failed to fetch medication history",
       message: "Internal server error",
     })
   }
